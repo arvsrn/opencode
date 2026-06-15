@@ -374,6 +374,7 @@ function HomeDesign() {
             open={searchOpen()}
             loading={sessionLoad.isLoading}
             results={searchResults()}
+            showProjectName={!selectedProject()}
             server={state.selection.server}
             activeServer={state.selection.server === server.key}
             noResultsLabel={language.t("home.sessions.search.noResults", { query: search() })}
@@ -414,6 +415,7 @@ function HomeDesign() {
                             {(record) => (
                               <HomeSessionRow
                                 record={record}
+                                showProjectName={!selectedProject()}
                                 server={state.selection.server}
                                 activeServer={state.selection.server === server.key}
                                 openSession={openSession}
@@ -750,6 +752,7 @@ function HomeSessionSearch(props: {
   open: boolean
   loading: boolean
   results: HomeSessionRecord[]
+  showProjectName: boolean
   server: ServerConnection.Key
   activeServer: boolean
   noResultsLabel: string
@@ -866,6 +869,7 @@ function HomeSessionSearch(props: {
                           {(record) => (
                             <HomeSessionSearchResultRow
                               record={record}
+                              showProjectName={props.showProjectName}
                               server={props.server}
                               activeServer={props.activeServer}
                               selected={store.active === homeSessionSearchKey(record)}
@@ -952,6 +956,7 @@ function HomeSessionSearch(props: {
 
 function HomeSessionSearchResultRow(props: {
   record: HomeSessionRecord
+  showProjectName: boolean
   server: ServerConnection.Key
   activeServer: boolean
   selected: boolean
@@ -959,6 +964,7 @@ function HomeSessionSearchResultRow(props: {
   onSelect: (session: Session) => void
 }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
+  const showProjectName = () => props.showProjectName && props.record.projectName
 
   const key = () => homeSessionSearchKey(props.record)
 
@@ -985,11 +991,11 @@ function HomeSessionSearchResultRow(props: {
       />
       <div class="flex min-w-0 flex-1 items-center gap-1.5">
         <span
-          class={`${HOME_SEARCH_RESULT_TITLE} ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+          class={`${HOME_SEARCH_RESULT_TITLE} ${showProjectName() ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
         >
           {title()}
         </span>
-        <Show when={props.record.projectName}>
+        <Show when={showProjectName()}>
           <span class={HOME_SEARCH_RESULT_META}>{props.record.projectName}</span>
         </Show>
       </div>
@@ -1022,11 +1028,13 @@ function HomeSessionGroupHeader(props: { title: string; onNewSession?: () => voi
 
 function HomeSessionRow(props: {
   record: HomeSessionRecord
+  showProjectName: boolean
   server: ServerConnection.Key
   activeServer: boolean
   openSession: (session: Session) => void
 }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
+  const showProjectName = () => props.showProjectName && props.record.projectName
 
   return (
     <button
@@ -1042,11 +1050,11 @@ function HomeSessionRow(props: {
         activeServer={props.activeServer}
       />
       <span
-        class={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-base [font-weight:530] ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+        class={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-base [font-weight:530] ${showProjectName() ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
       >
         {title()}
       </span>
-      <Show when={props.record.projectName}>
+      <Show when={showProjectName()}>
         <span class="min-w-0 flex-[1_1_auto] overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-muted [font-weight:440]">
           {props.record.projectName}
         </span>
