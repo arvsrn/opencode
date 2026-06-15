@@ -658,7 +658,7 @@ function HomeProjectRow(props: {
           onClick={() => props.openNewSession(props.server, props.project.worktree)}
         />
         <MenuV2
-          gutter={4}
+          gutter={6}
           modal={false}
           placement="bottom-end"
           open={state.menuOpen}
@@ -678,7 +678,7 @@ function HomeProjectRow(props: {
                 {props.language.t("command.session.new")}
               </MenuV2.Item>
               <MenuV2.Item onSelect={() => props.editProject(props.server, props.project)}>
-                {props.language.t("common.edit")}
+                {props.language.t("dialog.project.edit.title")}
               </MenuV2.Item>
               <MenuV2.Item
                 disabled={props.unseenCount === 0}
