@@ -20,10 +20,12 @@ import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 
 import { getProjectAvatarVariant, LayoutRoute, useLayout, type LocalProject } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
-import { useCommand } from "@/context/command"
+import { formatKeybindKeys, useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { WindowsAppMenu } from "./windows-app-menu"
@@ -333,6 +335,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
             })
 
             const openNewTab = () => navigate(newSessionHref())
+            const newTabKeybind = "mod+t"
 
             command.register("tabs", () => {
               const current = currentTab()
@@ -342,7 +345,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                   id: "tab.new",
                   category: "tab",
                   title: language.t("command.session.new"),
-                  keybind: "mod+t",
+                  keybind: newTabKeybind,
                   hidden: true,
                   onSelect: openNewTab,
                 },
@@ -541,16 +544,26 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                   />
                 </div>
                 <Show when={!(creating() && params.dir)}>
-                  <IconButtonV2
-                    type="button"
-                    variant="ghost-muted"
-                    size="large"
-                    class="shrink-0"
-                    icon={<IconV2 name="plus" />}
-                    as="a"
-                    href={newSessionHref()}
-                    aria-label={language.t("command.session.new")}
-                  />
+                  <TooltipV2
+                    placement="bottom"
+                    value={
+                      <>
+                        {language.t("command.session.new")}
+                        <KeybindV2 keys={formatKeybindKeys(newTabKeybind, language.t)} variant="neutral" />
+                      </>
+                    }
+                  >
+                    <IconButtonV2
+                      type="button"
+                      variant="ghost-muted"
+                      size="large"
+                      class="shrink-0"
+                      icon={<IconV2 name="plus" />}
+                      as="a"
+                      href={newSessionHref()}
+                      aria-label={language.t("command.session.new")}
+                    />
+                  </TooltipV2>
                 </Show>
                 <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />

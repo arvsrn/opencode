@@ -170,11 +170,11 @@ export function matchKeybind(keybinds: Keybind[], event: KeyboardEvent): boolean
   return false
 }
 
-export function formatKeybind(config: string, t?: (key: KeyLabel) => string): string {
-  if (!config || config === "none") return ""
+function formatKeybindParts(config: string, t?: (key: KeyLabel) => string): string[] {
+  if (!config || config === "none") return []
 
   const keybinds = parseKeybind(config)
-  if (keybinds.length === 0) return ""
+  if (keybinds.length === 0) return []
 
   const kb = keybinds[0]
   const parts: string[] = []
@@ -184,41 +184,52 @@ export function formatKeybind(config: string, t?: (key: KeyLabel) => string): st
   if (kb.shift) parts.push(IS_MAC ? "⇧" : keyText("common.key.shift", t))
   if (kb.meta) parts.push(IS_MAC ? "⌘" : keyText("common.key.meta", t))
 
-  if (kb.key) {
-    const keys: Record<string, string> = {
-      arrowup: "↑",
-      arrowdown: "↓",
-      arrowleft: "←",
-      arrowright: "→",
-      comma: ",",
-      plus: "+",
-    }
-    const named: Record<string, KeyLabel> = {
-      backspace: "common.key.backspace",
-      delete: "common.key.delete",
-      end: "common.key.end",
-      enter: "common.key.enter",
-      esc: "common.key.esc",
-      escape: "common.key.esc",
-      home: "common.key.home",
-      insert: "common.key.insert",
-      pagedown: "common.key.pageDown",
-      pageup: "common.key.pageUp",
-      space: "common.key.space",
-      tab: "common.key.tab",
-    }
-    const key = kb.key.toLowerCase()
-    const displayKey =
-      keys[key] ??
+  if (!kb.key) return parts
+
+  const keys: Record<string, string> = {
+    arrowup: "↑",
+    arrowdown: "↓",
+    arrowleft: "←",
+    arrowright: "→",
+    comma: ",",
+    plus: "+",
+  }
+  const named: Record<string, KeyLabel> = {
+    backspace: "common.key.backspace",
+    delete: "common.key.delete",
+    end: "common.key.end",
+    enter: "common.key.enter",
+    esc: "common.key.esc",
+    escape: "common.key.esc",
+    home: "common.key.home",
+    insert: "common.key.insert",
+    pagedown: "common.key.pageDown",
+    pageup: "common.key.pageUp",
+    space: "common.key.space",
+    tab: "common.key.tab",
+  }
+  const key = kb.key.toLowerCase()
+  parts.push(
+    keys[key] ??
       (named[key]
         ? keyText(named[key], t)
         : key.length === 1
           ? key.toUpperCase()
-          : key.charAt(0).toUpperCase() + key.slice(1))
-    parts.push(displayKey)
-  }
+          : key.charAt(0).toUpperCase() + key.slice(1)),
+  )
 
+  return parts
+}
+
+export function formatKeybind(config: string, t?: (key: KeyLabel) => string): string {
+  const parts = formatKeybindParts(config, t)
+  if (parts.length === 0) return ""
   return IS_MAC ? parts.join("") : parts.join("+")
+}
+
+// KeybindV2 takes an array instead of a string
+export function formatKeybindKeys(config: string, t?: (key: KeyLabel) => string): string[] {
+  return formatKeybindParts(config, t)
 }
 
 function isEditableTarget(target: EventTarget | null) {
