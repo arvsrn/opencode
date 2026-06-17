@@ -22,7 +22,7 @@ import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 
-import { getProjectAvatarVariant, LayoutRoute, useLayout, type LocalProject } from "@/context/layout"
+import { LayoutRoute, useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
@@ -31,9 +31,8 @@ import { WindowsAppMenu } from "./windows-app-menu"
 import { applyPath, backPath, forwardPath } from "./titlebar-history"
 import { useServerSync } from "@/context/server-sync"
 import { base64Encode } from "@opencode-ai/core/util/encode"
-import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
-import { displayName, getProjectAvatarSource, projectForSession } from "@/pages/layout/helpers"
-import { useSessionTabAvatarState } from "@/pages/layout/project-avatar-state"
+import { projectForSession } from "@/pages/layout/helpers"
+import { SessionTabAvatar } from "@/pages/layout/session-tab-avatar"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/components/titlebar-session-events"
@@ -851,7 +850,7 @@ function TabNavItem(props: {
               class="flex h-full min-w-0 flex-1 flex-row items-center gap-1.5 text-[13px] font-medium text-v2-text-text-faint group-data-[active='true']:text-v2-text-text-base"
             >
               <span data-slot="project-avatar-slot">
-                <ProjectTabAvatar
+                <SessionTabAvatar
                   project={project()}
                   directory={props.directory}
                   sessionId={session().id}
@@ -884,26 +883,6 @@ function TabNavItem(props: {
         />
       </div>
     </div>
-  )
-}
-
-function ProjectTabAvatar(props: {
-  project?: LocalProject
-  directory: string
-  sessionId: string
-  activeServer: boolean
-}) {
-  const directory = () => props.directory
-  const sessionId = () => props.sessionId
-  const state = useSessionTabAvatarState(directory, sessionId, () => props.activeServer)
-  return (
-    <ProjectAvatar
-      fallback={displayName(props.project ?? { worktree: props.directory })}
-      src={getProjectAvatarSource(props.project?.id, props.project?.icon)}
-      variant={getProjectAvatarVariant(props.project?.icon?.color)}
-      unread={state.unread()}
-      loading={state.loading()}
-    />
   )
 }
 
