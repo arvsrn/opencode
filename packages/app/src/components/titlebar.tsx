@@ -1,13 +1,12 @@
 import {
   createEffect,
   createMemo,
-  createResource,
   createSignal,
   For,
   Match,
-  onCleanup,
   onMount,
   Show,
+  startTransition,
   Switch,
   untrack,
 } from "solid-js"
@@ -32,16 +31,11 @@ import { WindowsAppMenu } from "./windows-app-menu"
 import { applyPath, backPath, forwardPath } from "./titlebar-history"
 import { useServerSync } from "@/context/server-sync"
 import { base64Encode } from "@opencode-ai/core/util/encode"
-import { projectForSession } from "@/pages/layout/helpers"
-import { SessionTabAvatar } from "@/pages/layout/session-tab-avatar"
+import { TitlebarTabStrip } from "@/components/titlebar-tab-strip"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/components/titlebar-session-events"
-import { useGlobal } from "@/context/global"
-import { decode64 } from "@/utils/base64"
-import { ServerConnection, useServer } from "@/context/server"
-import { tabHref, useTabs, type Tab } from "@/context/tabs"
-import "./titlebar.css"
+import { useServer } from "@/context/server"
+import { tabHref, tabKey, useTabs, type Tab } from "@/context/tabs"
 
 type TauriDesktopWindow = {
   startDragging?: () => Promise<void>
@@ -231,7 +225,6 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
 
   return (
     <header
-      data-slot={useV2Titlebar() ? "titlebar-v2" : undefined}
       classList={{
         "shrink-0 relative flex flex-row": true,
         "h-9 bg-v2-background-bg-deep overflow-visible": useV2Titlebar(),
@@ -269,11 +262,21 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
             const tabs = useTabs()
             const tabsStore = tabs.store
             const tabsStoreActions = tabs
+            const navigateTab = (tab: Tab) => {
+              const href = tabHref(tab)
+              if (tab.server === server.key) {
+                navigate(href)
+                return
+              }
+              void startTransition(() => {
+                server.setActive(tab.server)
+                navigate(href)
+              })
+            }
 
             const matchRoute = (route: LayoutRoute) => {
               if (route.type === "home") return
-              if (route.type === "draft") {
-                return tabsStore.find((item) => item.type === "draft" && item.draftID === route.draftID)
+              if (route.type === "dir-new-sesssion") {
               }
               if (route.type === "session") {
                 const main = tabsStore.find(
@@ -281,7 +284,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                     item.type === "session" && item.server === route.server && item.sessionId === route.sessionId,
                 )
                 if (main) return main
-                const sync = serverSync().createDirSyncContext(route.dir)
+                const sync = serverSync.createDirSyncContext(route.dir)
                 const session = sync.session.get(route.sessionId)
                 if (session?.parentID) {
                   const parentID = session.parentID
@@ -299,13 +302,10 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
               const route = layout.route()
               if (!tabs.ready()) return
               const tab = currentTab()
-              if (tab) {
-                tabs.remember(tab)
-                return
-              }
+              if (tab) return
 
               if (route.type === "session") {
-                const sync = serverSync().createDirSyncContext(route.dir)
+                const sync = serverSync.createDirSyncContext(route.dir)
                 const session = sync.session.get(route.sessionId)
                 if (!session) return
                 const sessionId = session.parentID ?? session.id
@@ -375,7 +375,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                     if (index === -1) index = tabsStore.length - 1
 
                     const next = tabsStore[index]
-                    if (next) tabs.select(next)
+                    if (next) navigateTab(next)
                   },
                 },
                 {
@@ -392,7 +392,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                     if (index === tabsStore.length) index = 0
 
                     const next = tabsStore[index]
-                    if (next) tabs.select(next)
+                    if (next) navigateTab(next)
                   },
                 },
                 ...Array.from({ length: 9 }, (_, i) => {
@@ -407,7 +407,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                     hidden: true,
                     onSelect: () => {
                       const tab = tabsStore[index]
-                      if (tab) tabs.select(tab)
+                      if (tab) navigateTab(tab)
                     },
                   }
                 }),
@@ -415,23 +415,6 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
             })
 
             const [tabsAreOverflowing, setTabsAreOverflowing] = createSignal(false)
-            const [tabsFadeLeft, setTabsFadeLeft] = createSignal(false)
-            const [tabsFadeRight, setTabsFadeRight] = createSignal(false)
-            let tabScrollRef!: HTMLDivElement
-
-            function refreshTabsScrollState() {
-              const el = tabScrollRef
-              if (!el) return
-              const overflowing = el.scrollWidth > el.clientWidth
-              setTabsAreOverflowing(overflowing)
-              setTabsFadeLeft(overflowing && el.scrollLeft > 0)
-              setTabsFadeRight(overflowing && el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
-            }
-
-            createEffect(() => {
-              tabsStore.length
-              queueMicrotask(refreshTabsScrollState)
-            })
 
             return (
               <div
@@ -468,113 +451,48 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                   />
                 </TooltipV2>
 
-                <div data-slot="titlebar-tabs" class="relative min-w-0">
-                  <div
-                    data-slot="titlebar-tabs-scroll"
-                    class="flex min-w-0 flex-row items-center gap-1.5 overflow-x-auto no-scrollbar [app-region:no-drag]"
-                    ref={(el) => {
-                      tabScrollRef = el
-                      const observer = new ResizeObserver(refreshTabsScrollState)
-                      observer.observe(el)
-                      onCleanup(() => observer.disconnect())
-                      refreshTabsScrollState()
+                <TitlebarTabStrip
+                  tabs={tabsStore}
+                  currentTab={currentTab}
+                  activeServerKey={server.key}
+                  forceTruncate={tabsAreOverflowing()}
+                  onOverflowChange={setTabsAreOverflowing}
+                  onNavigate={(tab, el) => {
+                    navigateTab(tab)
+                    el.scrollIntoView({ behavior: "instant" })
+                  }}
+                  onClose={(tab) => {
+                    const index = tabsStore.findIndex((item) => tabKey(item) === tabKey(tab))
+                    if (index !== -1) tabsStoreActions.removeTab(index)
+                  }}
+                  onReorder={(keys) => tabsStoreActions.reorder(keys)}
+                >
+                  <Show when={creating() && params.dir}>
+                    {(_) => {
+                      let ref!: HTMLDivElement
+
+                      onMount(() => {
+                        ref.scrollIntoView({ behavior: "instant" })
+                      })
+
+                      return (
+                        <>
+                          <div class="ml-1.5 h-3 w-[1.5px] shrink-0 rounded-full bg-[var(--v2-background-bg-layer-02)]" />
+                          <NewSessionTabItem
+                            ref={ref}
+                            href={`/${params.dir}/session`}
+                            title={language.t("command.session.new")}
+                            onClose={() => {
+                              const tab = tabsStore.at(-1)
+                              if (tab) navigateTab(tab)
+                              else navigate("/")
+                            }}
+                          />
+                        </>
+                      )
                     }}
-                    onScroll={refreshTabsScrollState}
-                  >
-                    <div class="flex min-w-0 flex-row items-center gap-1.5">
-                      <For each={tabsStore}>
-                        {(tab, i) => {
-                          let ref!: HTMLDivElement
-
-                          const divider = () =>
-                            i() !== 0 && (
-                              <div class="w-[1.5px] h-3 shrink-0 rounded-full bg-[var(--v2-background-bg-layer-02)]" />
-                            )
-
-                          if (tab.type === "draft") {
-                            return (
-                              <>
-                                {divider()}
-                                <DraftTabItem
-                                  ref={ref}
-                                  href={tabHref(tab)}
-                                  title={language.t("command.session.new")}
-                                  active={currentTab() === tab}
-                                  onNavigate={() => {
-                                    tabs.select(tab)
-                                    ref.scrollIntoView({ behavior: "instant" })
-                                  }}
-                                  onClose={() => tabsStoreActions.removeTab(i())}
-                                />
-                              </>
-                            )
-                          }
-
-                          return (
-                            <>
-                              {divider()}
-                              <TabNavItem
-                                ref={ref}
-                                href={tabHref(tab)}
-                                server={tab.server}
-                                directory={decode64(tab.dirBase64)!}
-                                sessionId={tab.sessionId}
-                                onNavigate={() => {
-                                  tabs.select(tab)
-
-                                  ref.scrollIntoView({ behavior: "instant" })
-                                }}
-                                onClose={() => tabsStoreActions.removeTab(i())}
-                                active={currentTab() === tab}
-                                activeServer={tab.server === server.key}
-                                forceTruncate={tabsAreOverflowing()}
-                              />
-                            </>
-                          )
-                        }}
-                      </For>
-                      <Show when={creating() && params.dir}>
-                        {(_) => {
-                          let ref!: HTMLDivElement
-
-                          onMount(() => {
-                            ref.scrollIntoView({ behavior: "instant" })
-                          })
-
-                          return (
-                            <>
-                              <div class="w-[1.5px] h-3 shrink-0 rounded-full bg-[var(--v2-background-bg-layer-02)]" />
-                              <NewSessionTabItem
-                                ref={ref}
-                                href={`/${params.dir}/session`}
-                                title={language.t("command.session.new")}
-                                onClose={() => {
-                                  const tab = tabsStore.at(-1)
-                                  if (tab) tabs.select(tab)
-                                  else navigate("/")
-                                }}
-                              />
-                            </>
-                          )
-                        }}
-                      </Show>
-                    </div>
-                  </div>
-                  <Show when={tabsFadeLeft()}>
-                    <div
-                      data-slot="titlebar-tabs-fade-left"
-                      aria-hidden="true"
-                      class="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-[linear-gradient(to_right,var(--v2-background-bg-deep),transparent)]"
-                    />
                   </Show>
-                  <Show when={tabsFadeRight()}>
-                    <div
-                      data-slot="titlebar-tabs-fade-right"
-                      aria-hidden="true"
-                      class="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-[linear-gradient(to_left,var(--v2-background-bg-deep),transparent)]"
-                    />
-                  </Show>
-                </div>
+                </TitlebarTabStrip>
                 <Show when={!(creating() && params.dir)}>
                   <TooltipV2
                     placement="bottom"
@@ -683,6 +601,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                         >
                           <Button
                             variant="ghost"
+                            icon={creating() ? "new-session-active" : "new-session"}
                             class="titlebar-icon w-8 h-6 p-0 box-border"
                             disabled={layout.sidebar.opened()}
                             tabIndex={layout.sidebar.opened() ? -1 : undefined}
@@ -692,9 +611,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                             }}
                             aria-label={language.t("command.session.new")}
                             aria-current={creating() ? "page" : undefined}
-                          >
-                            <IconV2 name="edit" size="small" />
-                          </Button>
+                          />
                         </TooltipKeybind>
                       </div>
                     </div>
@@ -819,161 +736,6 @@ function TitlebarUpdateIconButton(props: { state: TitlebarUpdatePillState }) {
   )
 }
 
-function TabNavItem(props: {
-  ref?: HTMLDivElement
-  href: string
-  server: ServerConnection.Key
-  directory: string
-  sessionId?: string
-  hideClose?: boolean
-  onClose: () => void
-  onNavigate: () => void
-  active?: boolean
-  activeServer: boolean
-  forceTruncate?: boolean
-}) {
-  const closeTab = (event: MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    props.onClose()
-  }
-  const global = useGlobal()
-  const serverCtx = createMemo(() => {
-    const conn = global.servers.list().find((item) => ServerConnection.key(item) === props.server)
-    if (conn) return global.createServerCtx(conn)
-  })
-  const dirSyncCtx = createMemo(() => serverCtx()?.sync.createDirSyncContext(props.directory))
-
-  const [session] = createResource(
-    () => {
-      const ctx = dirSyncCtx()
-      if (!ctx || !props.sessionId) return
-      return [props.sessionId, ctx] as const
-    },
-    async ([sessionId, dirSyncCtx]) => {
-      await dirSyncCtx.session.sync(sessionId).catch(() => {})
-      return dirSyncCtx.session.get(sessionId)
-    },
-    { initialValue: props.sessionId ? dirSyncCtx()?.session.get(props.sessionId) : undefined },
-  )
-
-  return (
-    <div
-      ref={props.ref}
-      data-slot="titlebar-tab-item"
-      class="group relative flex h-7 min-w-24 max-w-60 flex-row items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[6px] bg-[var(--tab-bg)] px-1.5 [--tab-bg:var(--v2-background-bg-deep)] hover:[--tab-bg:var(--v2-background-bg-layer-02)] has-[>a:focus-visible]:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:[--tab-bg:var(--v2-background-bg-layer-02)]"
-      data-active={props.active}
-      onMouseDown={(event) => {
-        if (event.button !== 1) return
-        closeTab(event)
-      }}
-    >
-      <Show when={session.latest}>
-        {(session) => {
-          const project = createMemo(() => projectForSession(session(), serverCtx()?.projects.list() ?? []))
-
-          return (
-            <a
-              href={props.href}
-              onClick={(event) => {
-                event.preventDefault()
-                props.onNavigate()
-              }}
-              class="flex h-full min-w-0 flex-1 flex-row items-center gap-1.5 text-[13px] font-medium text-v2-text-text-faint group-data-[active='true']:text-v2-text-text-base"
-            >
-              <span data-slot="project-avatar-slot">
-                <SessionTabAvatar
-                  project={project()}
-                  directory={props.directory}
-                  sessionId={session().id}
-                  activeServer={props.activeServer}
-                />
-              </span>
-              <span class="min-w-0 flex-1">{session().title}</span>
-            </a>
-          )
-        }}
-      </Show>
-
-      <div
-        data-slot="titlebar-tab-close"
-        class="absolute not-group-hover:not-group-data-[active=true]:not-data-[truncate=true]:left-52 group-hover:right-0 group-data-[active=true]:right-0 data-[truncate=true]:right-0 inset-y-0 flex flex-row items-center pr-1 py-1 w-8 pl-2"
-        data-truncate={props.forceTruncate}
-      >
-        <div
-          data-slot="titlebar-tab-close-fade"
-          class="absolute inset-0 rounded-r-[6px] bg-(image:--inactive-bg) group-hover:bg-(image:--active-bg) group-data-[active=true]:bg-(image:--active-bg)"
-          style={{
-            "--inactive-bg": "linear-gradient(to right, transparent 0%, var(--tab-bg) 80%)",
-            "--active-bg": "linear-gradient(90deg, transparent 0%, var(--tab-bg) 25%)",
-          }}
-        />
-        <IconButtonV2
-          size="small"
-          variant="ghost-muted"
-          class="opacity-0 group-hover:opacity-100 group-data-[active='true']:opacity-100 z-10"
-          onClick={closeTab}
-          icon={<IconV2 name="xmark-small" />}
-        />
-      </div>
-    </div>
-  )
-}
-
-function DraftTabItem(props: {
-  ref?: HTMLDivElement
-  href: string
-  title: string
-  active?: boolean
-  onNavigate: () => void
-  onClose: () => void
-}) {
-  const closeTab = (event: MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    props.onClose()
-  }
-  return (
-    <div
-      ref={props.ref}
-      data-slot="titlebar-tab-item"
-      data-active={props.active}
-      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--tab-bg)] pl-1.5 pr-8 whitespace-nowrap [--tab-bg:var(--v2-background-bg-deep)] hover:[--tab-bg:var(--v2-background-bg-layer-02)] has-[>a:focus-visible]:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:has-[>a:focus-visible]:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:[--tab-bg:var(--v2-overlay-simple-overlay-pressed)]"
-      onMouseDown={(event) => {
-        if (event.button !== 1) return
-        closeTab(event)
-      }}
-    >
-      <a
-        href={props.href}
-        onClick={(event) => {
-          event.preventDefault()
-          props.onNavigate()
-        }}
-        class="flex h-full min-w-0 flex-1 flex-row items-center gap-1.5 overflow-hidden text-[13px] font-medium leading-5 text-v2-text-text-faint group-data-[active='true']:text-[var(--v2-text-text-base)]"
-      >
-        <span class="flex size-4 shrink-0 items-center justify-center">
-          <IconV2 name="edit" />
-        </span>
-        <span class="truncate leading-5">{props.title}</span>
-      </a>
-      <div class="absolute right-0 inset-y-0 flex w-7 items-center justify-center">
-        <IconButtonV2
-          size="small"
-          variant="ghost-muted"
-          onMouseDown={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-          onClick={closeTab}
-          icon={<IconV2 name="xmark-small" />}
-          aria-label="Close tab"
-        />
-      </div>
-    </div>
-  )
-}
-
 function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: string; onClose: () => void }) {
   const closeTab = (event: MouseEvent) => {
     event.preventDefault()
@@ -983,8 +745,7 @@ function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: s
   return (
     <div
       ref={props.ref}
-      data-slot="titlebar-tab-item"
-      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--v2-overlay-simple-overlay-pressed)] has-[>a:focus-visible]:bg-[var(--v2-background-bg-layer-02)] pl-1.5 pr-8 whitespace-nowrap"
+      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--v2-overlay-simple-overlay-pressed)] pl-1.5 pr-8 whitespace-nowrap focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--v2-border-border-focus)]"
       onMouseDown={(event) => {
         if (event.button !== 1) return
         closeTab(event)
@@ -995,7 +756,7 @@ function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: s
         aria-current="page"
         class="flex h-full min-w-0 flex-1 flex-row items-center gap-1.5 overflow-hidden text-[13px] font-medium leading-5 text-[var(--v2-text-text-base)]"
       >
-        <span class="flex size-4 shrink-0 items-center justify-center">
+        <span class="flex size-4 shrink-0 rotate-90 items-center justify-center">
           <IconV2 name="edit" />
         </span>
         <span class="truncate leading-5">{props.title}</span>
