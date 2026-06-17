@@ -5,6 +5,7 @@ import { previewSelectedLines } from "@opencode-ai/ui/pierre/selection-bridge"
 import { useFile, selectionFromLines, type FileSelection, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
+import { usePlatform } from "@/context/platform"
 import { useLocal } from "@/context/local"
 import { usePermission } from "@/context/permission"
 import { usePrompt } from "@/context/prompt"
@@ -43,6 +44,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const prompt = usePrompt()
   const sdk = useSDK()
   const settings = useSettings()
+  const platform = usePlatform()
   const sync = useSync()
   const terminal = useTerminal()
   const layout = useLayout()
@@ -68,7 +70,8 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   })
   const activeFileTab = tabState.activeFileTab
   const closableTab = tabState.closableTab
-  const shown = settings.visibility.fileTree
+  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
+  const shown = () => (desktopV2() ? settings.general.showFileTree() : true)
 
   const messages = () => {
     const id = params.id

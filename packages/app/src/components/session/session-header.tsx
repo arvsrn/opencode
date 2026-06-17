@@ -65,7 +65,7 @@ export function SessionHeader() {
   }
 
   const tint = createMemo(() =>
-    messageAgentColor(params.id ? sync.data.message[params.id] : undefined, sync.data.agent),
+    messageAgentColor(params.id ? sync().data.message[params.id] : undefined, sync().data.agent),
   )
   const v2ActionsState = createMemo<SessionHeaderV2ActionsState>(() => ({
     statusVisible: status(),

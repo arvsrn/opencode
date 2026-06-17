@@ -54,7 +54,7 @@ export function FilesPanelV2Sidebar(props: FilesPanelV2SidebarProps) {
 
   createEffect(() => {
     const value = query()
-    const directory = sdk.directory
+    const directory = sdk().directory
     if (!directory || !value) {
       setStore({
         files: [],
@@ -69,7 +69,7 @@ export function FilesPanelV2Sidebar(props: FilesPanelV2SidebarProps) {
     const timeout = setTimeout(() => {
       setStore("loading", true)
 
-      void sdk.client.find
+      void sdk().client.find
         .files({
           query: value,
           dirs: "false",

@@ -326,7 +326,9 @@ export function TitlebarTabStrip(props: {
   const draggedTab = createMemo(() => {
     const id = drag.draggedId
     if (!id) return
-    return props.tabs.find((tab) => tabKey(tab) === id)
+    const tab = props.tabs.find((item) => tabKey(item) === id)
+    if (!tab || tab.type !== "session") return
+    return tab
   })
 
   return (
@@ -340,6 +342,7 @@ export function TitlebarTabStrip(props: {
           <div class="flex min-w-0 flex-row items-center" ref={listRef}>
           <For each={displayTabs()}>
             {(tab, index) => {
+              if (tab.type !== "session") return null
               const id = tabKey(tab)
               const first = () => index() === 0
               let ref!: HTMLDivElement

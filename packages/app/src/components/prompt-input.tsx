@@ -1436,7 +1436,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       class: "max-w-[203px]",
       style: control(),
     },
-    projects: projects(),
+    projects: projects().map((project) => ({
+      ...project,
+      expanded: selectedProject()?.worktree === project.worktree,
+    })),
     selectedWorktree: selectedProject()?.worktree,
     projectLabel: displayName,
     searchPlaceholder: language.t("session.new.project.search"),
