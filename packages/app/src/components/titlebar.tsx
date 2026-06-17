@@ -24,7 +24,7 @@ import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 
 import { LayoutRoute, useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
-import { useCommand } from "@/context/command"
+import { formatKeybindKeys, useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { WindowsAppMenu } from "./windows-app-menu"
@@ -230,6 +230,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
 
   return (
     <header
+      data-slot={useV2Titlebar() ? "titlebar-v2" : undefined}
       classList={{
         "shrink-0 relative flex flex-row": true,
         "h-9 bg-v2-background-bg-deep overflow-visible": useV2Titlebar(),
@@ -324,6 +325,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
 
             const openNewTab = () => navigate(newSessionHref())
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
+            const newTabKeybind = "mod+t"
 
             command.register("titlebar-home", () => [
               {
@@ -344,7 +346,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                   id: "tab.new",
                   category: "tab",
                   title: language.t("command.session.new"),
-                  keybind: "mod+t",
+                  keybind: newTabKeybind,
                   hidden: true,
                   onSelect: openNewTab,
                 },
@@ -556,16 +558,26 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                   />
                 </div>
                 <Show when={!(creating() && params.dir)}>
-                  <IconButtonV2
-                    type="button"
-                    variant="ghost-muted"
-                    size="large"
-                    class="shrink-0"
-                    icon={<IconV2 name="plus" />}
-                    as="a"
-                    href={newSessionHref()}
-                    aria-label={language.t("command.session.new")}
-                  />
+                  <TooltipV2
+                    placement="bottom"
+                    value={
+                      <>
+                        {language.t("command.session.new")}
+                        <KeybindV2 keys={formatKeybindKeys(newTabKeybind, language.t)} variant="neutral" />
+                      </>
+                    }
+                  >
+                    <IconButtonV2
+                      type="button"
+                      variant="ghost-muted"
+                      size="large"
+                      class="shrink-0"
+                      icon={<IconV2 name="plus" />}
+                      as="a"
+                      href={newSessionHref()}
+                      aria-label={language.t("command.session.new")}
+                    />
+                  </TooltipV2>
                 </Show>
                 <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />
@@ -829,7 +841,8 @@ function TabNavItem(props: {
   return (
     <div
       ref={props.ref}
-      class="group relative flex h-7 min-w-24 max-w-60 flex-row items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[6px] bg-[var(--tab-bg)] px-1.5 [--tab-bg:var(--v2-background-bg-deep)] hover:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:[--tab-bg:var(--v2-background-bg-layer-02)]"
+      data-slot="titlebar-tab-item"
+      class="group relative flex h-7 min-w-24 max-w-60 flex-row items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[6px] bg-[var(--tab-bg)] px-1.5 [--tab-bg:var(--v2-background-bg-deep)] hover:[--tab-bg:var(--v2-background-bg-layer-02)] has-[>a:focus-visible]:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:[--tab-bg:var(--v2-background-bg-layer-02)]"
       data-active={props.active}
       onMouseDown={(event) => {
         if (event.button !== 1) return
@@ -864,10 +877,12 @@ function TabNavItem(props: {
       </Show>
 
       <div
+        data-slot="titlebar-tab-close"
         class="absolute not-group-hover:not-group-data-[active=true]:not-data-[truncate=true]:left-52 group-hover:right-0 group-data-[active=true]:right-0 data-[truncate=true]:right-0 inset-y-0 flex flex-row items-center pr-1 py-1 w-8 pl-2"
         data-truncate={props.forceTruncate}
       >
         <div
+          data-slot="titlebar-tab-close-fade"
           class="absolute inset-0 rounded-r-[6px] bg-(image:--inactive-bg) group-hover:bg-(image:--active-bg) group-data-[active=true]:bg-(image:--active-bg)"
           style={{
             "--inactive-bg": "linear-gradient(to right, transparent 0%, var(--tab-bg) 80%)",
@@ -902,8 +917,9 @@ function DraftTabItem(props: {
   return (
     <div
       ref={props.ref}
+      data-slot="titlebar-tab-item"
       data-active={props.active}
-      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--tab-bg)] pl-1.5 pr-8 whitespace-nowrap [--tab-bg:var(--v2-background-bg-deep)] hover:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:[--tab-bg:var(--v2-overlay-simple-overlay-pressed)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--v2-border-border-focus)]"
+      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--tab-bg)] pl-1.5 pr-8 whitespace-nowrap [--tab-bg:var(--v2-background-bg-deep)] hover:[--tab-bg:var(--v2-background-bg-layer-02)] has-[>a:focus-visible]:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:has-[>a:focus-visible]:[--tab-bg:var(--v2-background-bg-layer-02)] data-[active='true']:[--tab-bg:var(--v2-overlay-simple-overlay-pressed)]"
       onMouseDown={(event) => {
         if (event.button !== 1) return
         closeTab(event)
@@ -948,7 +964,8 @@ function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: s
   return (
     <div
       ref={props.ref}
-      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--v2-overlay-simple-overlay-pressed)] pl-1.5 pr-8 whitespace-nowrap focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--v2-border-border-focus)]"
+      data-slot="titlebar-tab-item"
+      class="group relative shrink-0 flex h-7 max-w-60 flex-row items-center gap-1.5 overflow-hidden rounded-[6px] bg-[var(--v2-overlay-simple-overlay-pressed)] has-[>a:focus-visible]:bg-[var(--v2-background-bg-layer-02)] pl-1.5 pr-8 whitespace-nowrap"
       onMouseDown={(event) => {
         if (event.button !== 1) return
         closeTab(event)

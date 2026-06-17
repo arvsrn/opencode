@@ -12,6 +12,7 @@ import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { getProjectAvatarVariant, useLayout, type LocalProject } from "@/context/layout"
 import { useNavigate } from "@solidjs/router"
 import { base64Encode } from "@opencode-ai/core/util/encode"
@@ -71,7 +72,7 @@ type HomeSessionGroup = {
 
 const HOME_SESSION_SEARCH_RESULTS_ID = "home-session-search-results"
 const HOME_SEARCH_RESULT_ROW =
-  "flex h-10 w-full shrink-0 cursor-default items-center gap-2 border-0 py-3 pl-4 pr-6 text-left transition-[background-color] duration-[120ms] ease-in-out hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+  "flex h-10 w-full shrink-0 cursor-default items-center gap-2 border-0 py-3 pl-[18px] pr-6 text-left transition-[background-color] duration-[120ms] ease-in-out hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
 const HOME_SEARCH_RESULT_TITLE =
   "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-4 tracking-[-0.04px] text-v2-text-text-base [font-weight:530]"
 const HOME_SEARCH_RESULT_META =
@@ -374,6 +375,7 @@ function HomeDesign() {
             open={searchOpen()}
             loading={sessionLoad.isLoading}
             results={searchResults()}
+            showProjectName={!selectedProject()}
             server={state.selection.server}
             activeServer={state.selection.server === server.key}
             noResultsLabel={language.t("home.sessions.search.noResults", { query: search() })}
@@ -414,6 +416,7 @@ function HomeDesign() {
                             {(record) => (
                               <HomeSessionRow
                                 record={record}
+                                showProjectName={!selectedProject()}
                                 server={state.selection.server}
                                 activeServer={state.selection.server === server.key}
                                 openSession={openSession}
@@ -457,15 +460,17 @@ function HomeProjectColumn(props: {
       <div class="flex h-7 min-w-0 items-center justify-between pl-1.5">
         <div class={HOME_SECTION_LABEL}>{props.language.t("home.projects")}</div>
         <Show when={global.servers.list().length === 1}>
-          <IconButtonV2
-            data-action="home-add-project"
-            variant="ghost-muted"
-            size="large"
-            class="titlebar-icon [&_[data-slot=icon-svg]]:text-v2-icon-icon-muted"
-            icon={<IconV2 name="folder-add-left" />}
-            onClick={() => props.chooseProject(global.servers.list()[0]!)}
-            aria-label={props.language.t("home.project.add")}
-          />
+          <TooltipV2 placement="bottom" value={props.language.t("home.project.add")}>
+            <IconButtonV2
+              data-action="home-add-project"
+              variant="ghost-muted"
+              size="large"
+              class="titlebar-icon [&_[data-slot=icon-svg]]:text-v2-icon-icon-muted"
+              icon={<IconV2 name="folder-add-left" />}
+              onClick={() => props.chooseProject(global.servers.list()[0]!)}
+              aria-label={props.language.t("home.project.add")}
+            />
+          </TooltipV2>
         </Show>
       </div>
       <Show
@@ -557,7 +562,7 @@ function HomeServerRow(props: {
         </span>
       </button>
       <div
-        class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover/server:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
+        class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity group-hover/server:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
         data-menu={state.menuOpen}
       >
         <ServerRowMenu
@@ -567,14 +572,20 @@ function HomeServerRow(props: {
           open={state.menuOpen}
           onOpenChange={(open) => setState("menuOpen", open)}
         />
-        <IconButtonV2
-          data-action="home-add-project"
-          variant="ghost-muted"
-          size="small"
-          icon={<IconV2 name="folder-add-left" />}
-          aria-label={props.language.t("home.project.add")}
-          onClick={() => props.chooseProject(props.server)}
-        />
+        <TooltipV2
+          class="flex shrink-0 items-center"
+          placement="bottom"
+          value={props.language.t("home.project.add")}
+        >
+          <IconButtonV2
+            data-action="home-add-project"
+            variant="ghost-muted"
+            size="small"
+            icon={<IconV2 name="folder-add-left" />}
+            aria-label={props.language.t("home.project.add")}
+            onClick={() => props.chooseProject(props.server)}
+          />
+        </TooltipV2>
       </div>
     </div>
   )
@@ -644,19 +655,11 @@ function HomeProjectRow(props: {
         <span class={HOME_PROJECT_NAV_LABEL}>{displayName(props.project)}</span>
       </button>
       <div
-        class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover/project:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
+        class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity group-hover/project:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
         data-menu={state.menuOpen}
       >
-        <IconButtonV2
-          data-action="home-project-new-session"
-          variant="ghost-muted"
-          size="small"
-          icon={<IconV2 name="edit" />}
-          aria-label={props.language.t("command.session.new")}
-          onClick={() => props.openNewSession(props.server, props.project.worktree)}
-        />
         <MenuV2
-          gutter={4}
+          gutter={6}
           modal={false}
           placement="bottom-end"
           open={state.menuOpen}
@@ -676,7 +679,7 @@ function HomeProjectRow(props: {
                 {props.language.t("command.session.new")}
               </MenuV2.Item>
               <MenuV2.Item onSelect={() => props.editProject(props.server, props.project)}>
-                {props.language.t("common.edit")}
+                {props.language.t("dialog.project.edit.title")}
               </MenuV2.Item>
               <MenuV2.Item
                 disabled={props.unseenCount === 0}
@@ -691,6 +694,14 @@ function HomeProjectRow(props: {
             </MenuV2.Content>
           </MenuV2.Portal>
         </MenuV2>
+        <IconButtonV2
+          data-action="home-project-new-session"
+          variant="ghost-muted"
+          size="small"
+          icon={<IconV2 name="edit" />}
+          aria-label={props.language.t("command.session.new")}
+          onClick={() => props.openNewSession(props.server, props.project.worktree)}
+        />
       </div>
     </div>
   )
@@ -721,7 +732,7 @@ function HomeSessionLeading(props: {
         <span
           aria-hidden="true"
           class="pointer-events-none absolute top-1/2 h-[7px] w-[3px] -translate-y-1/2 rounded-[2px] bg-v2-background-bg-layer-04"
-          style={{ right: "calc(100% + 12px)" }}
+          style={{ right: "calc(100% + 5px)" }}
         />
       </Show>
       <SessionTabAvatar
@@ -740,6 +751,7 @@ function HomeSessionSearch(props: {
   open: boolean
   loading: boolean
   results: HomeSessionRecord[]
+  showProjectName: boolean
   server: ServerConnection.Key
   activeServer: boolean
   noResultsLabel: string
@@ -817,12 +829,12 @@ function HomeSessionSearch(props: {
   )
 
   return (
-    <div class="ml-4 mr-2 w-[calc(100%_-_24px)]">
+    <div class="mr-2 w-[calc(100%_-_8px)]">
       <div ref={root} data-component="home-session-search" class="relative z-10 w-full">
         <Show when={props.open}>
           <div
             data-component="home-session-search-panel"
-            class="absolute flex flex-col rounded-[12px] bg-v2-background-bg-base shadow-[var(--v2-elevation-floating)]"
+            class="absolute flex flex-col overflow-hidden rounded-[12px] bg-v2-background-bg-base shadow-[var(--v2-elevation-floating)]"
             style={{
               top: "-6px",
               left: "-6px",
@@ -830,7 +842,7 @@ function HomeSessionSearch(props: {
             }}
           >
             <div class="flex flex-col pt-9">
-              <div id={HOME_SESSION_SEARCH_RESULTS_ID} role="listbox" class="flex flex-col gap-4 pt-4 pb-2">
+              <div id={HOME_SESSION_SEARCH_RESULTS_ID} role="listbox" class="flex flex-col gap-4 pt-4">
                 <Show
                   when={!props.loading}
                   fallback={
@@ -842,29 +854,32 @@ function HomeSessionSearch(props: {
                   <Show
                     when={props.results.length > 0}
                     fallback={
-                      <p class="my-1.5 px-4 text-[13px] leading-4 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
+                      <p class="my-1.5 px-4 pb-2 text-[13px] leading-4 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
                         {props.noResultsLabel}
                       </p>
                     }
                   >
                     <div class="flex flex-col">
-                      <p class="my-1.5 px-4 text-[13px] leading-4 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
+                      <p class="my-1.5 pl-[18px] pr-6 text-[13px] leading-4 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
                         {language.t("home.sessions.search.sessions")}
                       </p>
-                      <div ref={listRef} class="flex max-h-80 flex-col gap-px overflow-y-auto">
-                        <For each={props.results}>
-                          {(record) => (
-                            <HomeSessionSearchResultRow
-                              record={record}
-                              server={props.server}
-                              activeServer={props.activeServer}
-                              selected={store.active === homeSessionSearchKey(record)}
-                              onHighlight={() => setStore("active", homeSessionSearchKey(record))}
-                              onSelect={(session) => props.onSelect(session)}
-                            />
-                          )}
-                        </For>
-                      </div>
+                      <ScrollView class="max-h-80" viewportRef={(el) => (listRef = el)}>
+                        <div class="flex flex-col gap-px pb-2">
+                          <For each={props.results}>
+                            {(record) => (
+                              <HomeSessionSearchResultRow
+                                record={record}
+                                showProjectName={props.showProjectName}
+                                server={props.server}
+                                activeServer={props.activeServer}
+                                selected={store.active === homeSessionSearchKey(record)}
+                                onHighlight={() => setStore("active", homeSessionSearchKey(record))}
+                                onSelect={(session) => props.onSelect(session)}
+                              />
+                            )}
+                          </For>
+                        </div>
+                      </ScrollView>
                     </div>
                   </Show>
                 </Show>
@@ -873,11 +888,10 @@ function HomeSessionSearch(props: {
           </div>
         </Show>
         <label
-          class="relative z-20 flex h-9 w-full items-center gap-2 rounded-[6px] py-1 pl-3 pr-2 text-v2-icon-icon-muted transition-[background-color,box-shadow] duration-[120ms] ease-in-out"
+          class="relative z-20 flex h-9 w-full items-center gap-2 rounded-[6px] bg-v2-background-bg-layer-02 py-1 pl-3 pr-2 text-v2-icon-icon-muted transition-[background-color,box-shadow] duration-[120ms] ease-in-out"
           classList={{
-            "bg-v2-background-bg-layer-03 focus-within:bg-v2-background-bg-layer-03 focus-within:shadow-[0_0_0_0.5px_var(--v2-border-border-focus),var(--v2-elevation-raised)]":
-              !props.open,
-            "bg-transparent shadow-[0_0_0_0.5px_var(--v2-border-border-focus)]": props.open,
+            "focus-within:shadow-[0_0_0_0.5px_var(--v2-border-border-focus),var(--v2-elevation-raised)]": !props.open,
+            "shadow-[0_0_0_0.5px_var(--v2-border-border-focus)]": props.open,
           }}
         >
           <IconV2 name="magnifying-glass" />
@@ -942,6 +956,7 @@ function HomeSessionSearch(props: {
 
 function HomeSessionSearchResultRow(props: {
   record: HomeSessionRecord
+  showProjectName: boolean
   server: ServerConnection.Key
   activeServer: boolean
   selected: boolean
@@ -949,6 +964,7 @@ function HomeSessionSearchResultRow(props: {
   onSelect: (session: Session) => void
 }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
+  const showProjectName = () => props.showProjectName && props.record.projectName
 
   const key = () => homeSessionSearchKey(props.record)
 
@@ -975,11 +991,11 @@ function HomeSessionSearchResultRow(props: {
       />
       <div class="flex min-w-0 flex-1 items-center gap-1.5">
         <span
-          class={`${HOME_SEARCH_RESULT_TITLE} ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+          class={`${HOME_SEARCH_RESULT_TITLE} ${showProjectName() ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
         >
           {title()}
         </span>
-        <Show when={props.record.projectName}>
+        <Show when={showProjectName()}>
           <span class={HOME_SEARCH_RESULT_META}>{props.record.projectName}</span>
         </Show>
       </div>
@@ -990,7 +1006,7 @@ function HomeSessionSearchResultRow(props: {
 function HomeSessionGroupHeader(props: { title: string; onNewSession?: () => void }) {
   const language = useLanguage()
   return (
-    <div class="flex h-7 min-w-0 items-center justify-between pl-4 pr-2">
+    <div class="flex h-7 min-w-0 items-center justify-between pl-[18px] pr-2">
       <div class={HOME_SECTION_LABEL}>{props.title}</div>
       <Show when={props.onNewSession}>
         {(onNewSession) => (
@@ -1012,17 +1028,19 @@ function HomeSessionGroupHeader(props: { title: string; onNewSession?: () => voi
 
 function HomeSessionRow(props: {
   record: HomeSessionRecord
+  showProjectName: boolean
   server: ServerConnection.Key
   activeServer: boolean
   openSession: (session: Session) => void
 }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
+  const showProjectName = () => props.showProjectName && props.record.projectName
 
   return (
     <button
       type="button"
       data-component="home-session-row"
-      class={`${HOME_ROW} h-10 gap-2 px-6 py-3 pl-4`}
+      class={`${HOME_ROW} h-10 gap-2 py-3 pl-3 pr-6`}
       onClick={() => props.openSession(props.record.session)}
     >
       <HomeSessionLeading
@@ -1032,11 +1050,11 @@ function HomeSessionRow(props: {
         activeServer={props.activeServer}
       />
       <span
-        class={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-base [font-weight:530] ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+        class={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-base [font-weight:530] ${showProjectName() ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
       >
         {title()}
       </span>
-      <Show when={props.record.projectName}>
+      <Show when={showProjectName()}>
         <span class="min-w-0 flex-[1_1_auto] overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-muted [font-weight:440]">
           {props.record.projectName}
         </span>
