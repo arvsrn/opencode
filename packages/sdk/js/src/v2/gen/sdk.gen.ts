@@ -1696,6 +1696,7 @@ export class Find extends HeyApiClient {
       query: string
       dirs?: "true" | "false"
       type?: "file" | "directory"
+      fallback?: "none" | "glob"
       limit?: number
     },
     options?: Options<never, ThrowOnError>,
@@ -1710,6 +1711,7 @@ export class Find extends HeyApiClient {
             { in: "query", key: "query" },
             { in: "query", key: "dirs" },
             { in: "query", key: "type" },
+            { in: "query", key: "fallback" },
             { in: "query", key: "limit" },
           ],
         },
