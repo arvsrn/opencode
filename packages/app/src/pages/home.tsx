@@ -559,7 +559,7 @@ function HomeServerRow(props: {
         </span>
       </button>
       <div
-        class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover/server:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
+        class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity group-hover/server:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
         data-menu={state.menuOpen}
       >
         <ServerRowMenu
