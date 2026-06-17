@@ -12,6 +12,7 @@ import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { getProjectAvatarVariant, useLayout, type LocalProject } from "@/context/layout"
 import { useNavigate } from "@solidjs/router"
 import { base64Encode } from "@opencode-ai/core/util/encode"
@@ -459,15 +460,17 @@ function HomeProjectColumn(props: {
       <div class="flex h-7 min-w-0 items-center justify-between pl-1.5">
         <div class={HOME_SECTION_LABEL}>{props.language.t("home.projects")}</div>
         <Show when={global.servers.list().length === 1}>
-          <IconButtonV2
-            data-action="home-add-project"
-            variant="ghost-muted"
-            size="large"
-            class="titlebar-icon [&_[data-slot=icon-svg]]:text-v2-icon-icon-muted"
-            icon={<IconV2 name="folder-add-left" />}
-            onClick={() => props.chooseProject(global.servers.list()[0]!)}
-            aria-label={props.language.t("home.project.add")}
-          />
+          <TooltipV2 placement="bottom" value={props.language.t("home.project.add")}>
+            <IconButtonV2
+              data-action="home-add-project"
+              variant="ghost-muted"
+              size="large"
+              class="titlebar-icon [&_[data-slot=icon-svg]]:text-v2-icon-icon-muted"
+              icon={<IconV2 name="folder-add-left" />}
+              onClick={() => props.chooseProject(global.servers.list()[0]!)}
+              aria-label={props.language.t("home.project.add")}
+            />
+          </TooltipV2>
         </Show>
       </div>
       <Show
@@ -569,14 +572,20 @@ function HomeServerRow(props: {
           open={state.menuOpen}
           onOpenChange={(open) => setState("menuOpen", open)}
         />
-        <IconButtonV2
-          data-action="home-add-project"
-          variant="ghost-muted"
-          size="small"
-          icon={<IconV2 name="folder-add-left" />}
-          aria-label={props.language.t("home.project.add")}
-          onClick={() => props.chooseProject(props.server)}
-        />
+        <TooltipV2
+          class="flex shrink-0 items-center"
+          placement="bottom"
+          value={props.language.t("home.project.add")}
+        >
+          <IconButtonV2
+            data-action="home-add-project"
+            variant="ghost-muted"
+            size="small"
+            icon={<IconV2 name="folder-add-left" />}
+            aria-label={props.language.t("home.project.add")}
+            onClick={() => props.chooseProject(props.server)}
+          />
+        </TooltipV2>
       </div>
     </div>
   )
