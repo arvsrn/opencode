@@ -864,21 +864,23 @@ function HomeSessionSearch(props: {
                       <p class="my-1.5 px-4 text-[13px] leading-4 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
                         {language.t("home.sessions.search.sessions")}
                       </p>
-                      <div ref={listRef} class="flex max-h-80 flex-col gap-px overflow-y-auto">
-                        <For each={props.results}>
-                          {(record) => (
-                            <HomeSessionSearchResultRow
-                              record={record}
-                              showProjectName={props.showProjectName}
-                              server={props.server}
-                              activeServer={props.activeServer}
-                              selected={store.active === homeSessionSearchKey(record)}
-                              onHighlight={() => setStore("active", homeSessionSearchKey(record))}
-                              onSelect={(session) => props.onSelect(session)}
-                            />
-                          )}
-                        </For>
-                      </div>
+                      <ScrollView class="max-h-80" viewportRef={(el) => (listRef = el)}>
+                        <div class="flex flex-col gap-px">
+                          <For each={props.results}>
+                            {(record) => (
+                              <HomeSessionSearchResultRow
+                                record={record}
+                                showProjectName={props.showProjectName}
+                                server={props.server}
+                                activeServer={props.activeServer}
+                                selected={store.active === homeSessionSearchKey(record)}
+                                onHighlight={() => setStore("active", homeSessionSearchKey(record))}
+                                onSelect={(session) => props.onSelect(session)}
+                              />
+                            )}
+                          </For>
+                        </div>
+                      </ScrollView>
                     </div>
                   </Show>
                 </Show>
