@@ -738,7 +738,7 @@ function HomeSessionLeading(props: {
         <span
           aria-hidden="true"
           class="pointer-events-none absolute top-1/2 h-[7px] w-[3px] -translate-y-1/2 rounded-[2px] bg-v2-background-bg-layer-04"
-          style={{ right: "calc(100% + 12px)" }}
+          style={{ right: "calc(100% + 5px)" }}
         />
       </Show>
       <HomeSessionAvatar project={props.project} session={props.session} activeServer={props.activeServer} />
