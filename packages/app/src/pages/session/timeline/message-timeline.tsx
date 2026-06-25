@@ -257,6 +257,7 @@ export function MessageTimeline(props: {
   const sdk = useSDK()
   const sync = useSync()
   const settings = useSettings()
+  const useNewLayout = createMemo(() => settings.general.newLayoutDesigns())
   const tabs = useTabs()
   const dialog = useDialog()
   const language = useLanguage()
@@ -1019,7 +1020,13 @@ export function MessageTimeline(props: {
                 <div class="flex w-max min-w-full justify-end gap-2">
                   <Index each={comments()}>
                     {(comment) => (
-                      <div class="shrink-0 max-w-[260px] rounded-[6px] border-[0.5px] border-border-weak-base bg-background-stronger px-2.5 py-2">
+                      <div
+                        classList={{
+                          "shrink-0 max-w-[260px] rounded-[6px] bg-background-stronger px-2.5 py-2": true,
+                          "border-[0.5px] border-border-weak-base": useNewLayout(),
+                          "border border-border-weak-base": !useNewLayout(),
+                        }}
+                      >
                         <div class="flex items-center gap-1.5 min-w-0 text-11-medium text-text-strong">
                           <FileIcon node={{ path: comment().path, type: "file" }} class="size-3.5 shrink-0" />
                           <span class="truncate">{getFilename(comment().path)}</span>
@@ -1220,16 +1227,16 @@ export function MessageTimeline(props: {
       <div
         class="absolute left-1/2 -translate-x-1/2 z-[60] pointer-events-none transition-all duration-200 ease-out"
         classList={{
-          "bottom-8": settings.general.newLayoutDesigns(),
-          "bottom-6": !settings.general.newLayoutDesigns(),
+          "bottom-8": useNewLayout(),
+          "bottom-6": !useNewLayout(),
           "opacity-100 translate-y-0 scale-100": props.scroll.overflow && props.scroll.jump,
           "opacity-0 translate-y-2 pointer-events-none": !props.scroll.overflow || !props.scroll.jump,
-          "scale-[0.8]": (!props.scroll.overflow || !props.scroll.jump) && settings.general.newLayoutDesigns(),
-          "scale-95": (!props.scroll.overflow || !props.scroll.jump) && !settings.general.newLayoutDesigns(),
+          "scale-[0.8]": (!props.scroll.overflow || !props.scroll.jump) && useNewLayout(),
+          "scale-95": (!props.scroll.overflow || !props.scroll.jump) && !useNewLayout(),
         }}
       >
         <Show
-          when={settings.general.newLayoutDesigns()}
+          when={useNewLayout()}
           fallback={
             <button
               type="button"
@@ -1288,12 +1295,15 @@ export function MessageTimeline(props: {
           <div
             data-session-title
             classList={{
-              "sticky top-0 z-30 bg-[linear-gradient(to_bottom,var(--v2-background-bg-base)_48px,transparent)]": true,
+              "sticky top-0 z-30 bg-[linear-gradient(to_bottom,var(--v2-background-bg-base)_48px,transparent)]":
+                useNewLayout(),
+              "sticky top-0 z-30 bg-[linear-gradient(to_bottom,var(--background-stronger)_48px,transparent)]":
+                !useNewLayout(),
               "w-full": true,
               "pb-4": true,
               "pr-3": true,
-              "pl-4": settings.general.newLayoutDesigns(),
-              "pl-2 md:pl-4": !settings.general.newLayoutDesigns(),
+              "pl-4": useNewLayout(),
+              "pl-2 md:pl-4": !useNewLayout(),
               "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
             }}
           >
@@ -1509,7 +1519,11 @@ export function MessageTimeline(props: {
                                       <Button
                                         size="large"
                                         variant="secondary"
-                                        class="w-full shadow-none border-[0.5px] border-border-weak-base"
+                                        classList={{
+                                          "w-full shadow-none": true,
+                                          "border-[0.5px] border-border-weak-base": useNewLayout(),
+                                          "border border-border-weak-base": !useNewLayout(),
+                                        }}
                                         onClick={unshareSession}
                                         disabled={unshareMutation.isPending}
                                       >

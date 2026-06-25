@@ -1,17 +1,9 @@
 [data-component="markdown"] {
-  --markdown-inline-code-path-color: var(--v2-text-text-code-accent);
-  --markdown-inline-code-color: var(--v2-text-text-code-accent);
-  --markdown-inline-code-bg-mix: 8%;
-  --markdown-shell-code-background: var(--v2-background-bg-layer-02);
-  --markdown-shell-code-border: var(--v2-border-border-muted);
-  --markdown-shell-code-color: var(--v2-text-text-base);
-  --markdown-shell-code-token-color: currentColor;
-
   /* Reset & Base Typography */
   min-width: 0;
   max-width: 100%;
   overflow-wrap: break-word;
-  color: var(--v2-text-text-base);
+  color: var(--text-strong);
   font-family: var(--font-family-sans);
   font-size: var(--font-size-base); /* 14px */
   line-height: 160%;
@@ -30,31 +22,15 @@
     margin-bottom: 0;
   }
 
-  /* Headings: Sized by level, distinguished by color and spacing */
-  h1 {
-    font-size: 17px;
-    color: var(--v2-text-text-base);
-    font-weight: 600;
-    margin-top: 0px;
-    margin-bottom: 24px;
-    line-height: var(--line-height-large);
-  }
-
-  h2 {
-    font-size: 15px;
-    color: var(--v2-text-text-base);
-    font-weight: 600;
-    margin-top: 0px;
-    margin-bottom: 24px;
-    line-height: var(--line-height-large);
-  }
-
+  /* Headings: Same size, distinguished by color and spacing */
+  h1,
+  h2,
   h3,
   h4,
   h5,
   h6 {
-    font-size: 13px;
-    color: var(--v2-text-text-base);
+    font-size: 14px;
+    color: var(--text-strong);
     font-weight: var(--font-weight-medium);
     margin-top: 0px;
     margin-bottom: 24px;
@@ -64,7 +40,7 @@
   /* Emphasis & Strong: Neutral strong color */
   strong,
   b {
-    color: var(--v2-text-text-base);
+    color: var(--text-strong);
     font-weight: var(--font-weight-medium);
   }
 
@@ -119,7 +95,7 @@
   }
 
   li::marker {
-    color: var(--v2-text-text-muted);
+    color: var(--text-weak);
   }
 
   /* Nested lists spacing */
@@ -136,10 +112,10 @@
 
   /* Blockquotes */
   blockquote {
-    border-left: 0.5px solid var(--v2-border-border-base);
+    border-left: 2px solid var(--border-weak-base);
     margin: 1.5rem 0;
     padding-left: 0.5rem;
-    color: var(--v2-text-text-muted);
+    color: var(--text-weak);
     font-style: normal;
   }
 
@@ -156,25 +132,11 @@
     font-size: 13px;
     padding: 12px;
     border-radius: 6px;
-    border: 0.5px solid var(--v2-border-border-base);
+    border: 0.5px solid var(--border-weak-base);
   }
 
   [data-component="markdown-code"] {
     position: relative;
-  }
-
-  [data-component="markdown-code"][data-code-kind="shell"] .shiki {
-    background: var(--markdown-shell-code-background);
-    border-color: var(--markdown-shell-code-border);
-    color: var(--markdown-shell-code-color);
-  }
-
-  [data-component="markdown-code"][data-code-kind="shell"] code {
-    color: var(--markdown-shell-code-color);
-  }
-
-  [data-component="markdown-code"][data-code-kind="shell"] code span {
-    color: var(--markdown-shell-code-token-color) !important;
   }
 
   [data-slot="markdown-copy-button"] {
@@ -198,7 +160,7 @@
       background: var(--surface-float-base);
       color: var(--text-invert-strong);
       padding: 2px 8px;
-      border: 0.5px solid var(--v2-border-border-base, rgba(0, 0, 0, 0.07));
+      border: 1px solid var(--border-weak-base, rgba(0, 0, 0, 0.07));
       box-shadow: var(--shadow-md);
 
       pointer-events: none;
@@ -223,11 +185,11 @@
 
   [data-slot="markdown-copy-button"][data-variant="secondary"] {
     box-shadow: none;
-    border: 0.5px solid var(--v2-border-border-base);
+    border: 1px solid var(--border-weak-base);
   }
 
   [data-slot="markdown-copy-button"][data-variant="secondary"] [data-slot="icon-svg"] {
-    color: var(--v2-icon-icon-base);
+    color: var(--icon-base);
   }
 
   [data-component="markdown-code"]:hover [data-slot="markdown-copy-button"] {
@@ -260,28 +222,15 @@
   :not(pre) > code {
     font-family: var(--font-family-mono);
     font-feature-settings: var(--font-family-mono--font-feature-settings);
-    color: var(--v2-text-text-base);
+    color: var(--syntax-string);
     font-weight: var(--font-weight-medium);
-    padding: 2px 4px;
-    border-radius: 4px;
-    background: color-mix(in oklch, var(--v2-text-text-base) var(--markdown-inline-code-bg-mix), transparent);
-  }
+    /* font-size: 13px; */
 
-  :not(pre) > code[data-inline-code-kind="path"] {
-    color: var(--markdown-inline-code-path-color);
-    background: color-mix(
-      in oklch,
-      var(--markdown-inline-code-path-color) var(--markdown-inline-code-bg-mix),
-      transparent
-    );
-  }
-
-  a.external-link > code[data-inline-code-kind="url"] {
-    color: var(--markdown-inline-code-color);
-    background: none;
-    text-decoration: underline;
-    text-decoration-color: color-mix(in oklch, var(--markdown-inline-code-color) 25%, transparent);
-    text-underline-offset: 2px;
+    /* padding: 2px 2px; */
+    /* margin: 0 1.5px; */
+    /* border-radius: 2px; */
+    /* background: var(--surface-base); */
+    /* box-shadow: 0 0 0 0.5px var(--border-weak-base); */
   }
 
   /* Tables */
@@ -297,16 +246,16 @@
   th,
   td {
     /* Minimal borders for structure, matching TUI "lines" roughly but keeping it web-clean */
-    border-bottom: 0.5px solid var(--v2-border-border-muted);
+    border-bottom: 1px solid var(--border-weaker-base);
     padding: 12px;
     text-align: left;
     vertical-align: top;
   }
 
   th {
-    color: var(--v2-text-text-base);
+    color: var(--text-strong);
     font-weight: var(--font-weight-medium);
-    border-bottom: 0.5px solid var(--v2-border-border-base);
+    border-bottom: 1px solid var(--border-weak-base);
   }
 
   /* Images */

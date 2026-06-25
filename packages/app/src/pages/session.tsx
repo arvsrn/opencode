@@ -902,7 +902,13 @@ export default function Page() {
   )
 
   const reviewPanel = () => (
-    <div class="flex flex-col h-full overflow-hidden bg-v2-background-bg-base contain-strict">
+    <div
+      classList={{
+        "flex flex-col h-full overflow-hidden contain-strict": true,
+        "bg-v2-background-bg-base": newSessionDesign(),
+        "bg-background-stronger": !newSessionDesign(),
+      }}
+    >
       <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
         {reviewContent({
           diffStyle: layout.review.diffStyle(),
@@ -1683,8 +1689,9 @@ export default function Page() {
       <SessionHeader />
       <div
         class="flex-1 min-h-0 flex flex-col md:flex-row"
+        data-new-layout-designs={newSessionDesign() ? "" : undefined}
         classList={{
-          "gap-2 p-2": settings.general.newLayoutDesigns(),
+          "gap-2 p-2": newSessionDesign(),
         }}
       >
         <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
@@ -1701,9 +1708,11 @@ export default function Page() {
         >
           <div
             classList={{
-              "flex-1 min-h-0 flex flex-col bg-v2-background-bg-base": true,
-              "rounded-[10px] overflow-hidden": settings.general.newLayoutDesigns(),
-              "shadow-[var(--v2-elevation-raised)]": settings.general.newLayoutDesigns() && !!params.id,
+              "flex-1 min-h-0 flex flex-col": true,
+              "bg-v2-background-bg-base": newSessionDesign(),
+              "bg-background-stronger": !newSessionDesign(),
+              "rounded-[10px] overflow-hidden": newSessionDesign(),
+              "shadow-[var(--v2-elevation-raised)]": newSessionDesign() && !!params.id,
             }}
           >
             <Show when={!isDesktop() && !!params.id && settings.general.newLayoutDesigns() && !mobileTabsBottom()}>
