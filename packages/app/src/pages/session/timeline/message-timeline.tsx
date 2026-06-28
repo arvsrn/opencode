@@ -27,9 +27,10 @@ import {
   partDefaultOpen,
   type UserActions,
 } from "@opencode-ai/session-ui/message-part"
-import { DiffChanges } from "@opencode-ai/ui/v2/diff-changes-v2"
+import { DiffChanges } from "@opencode-ai/ui/diff-changes"
+import "@opencode-ai/ui/v2/diff-changes-v2.css"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
-import { Icon } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -39,6 +40,7 @@ import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { StickyAccordionHeader } from "@opencode-ai/ui/sticky-accordion-header"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { TextReveal } from "@opencode-ai/ui/text-reveal"
+import { TextShimmer } from "@opencode-ai/ui/text-shimmer"
 import { TextShimmerV2 } from "@opencode-ai/ui/v2/text-shimmer-v2"
 import type {
   AssistantMessage,
@@ -124,10 +126,16 @@ const markBoundaryGesture = (input: {
 
 function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSummaries: boolean }) {
   const language = useLanguage()
+  const settings = useSettings()
 
   return (
     <div data-slot="session-turn-thinking">
-      <TextShimmerV2 text={language.t("ui.sessionTurn.status.thinking")} />
+      <Show
+        when={settings.general.newLayoutDesigns()}
+        fallback={<TextShimmer text={language.t("ui.sessionTurn.status.thinking")} />}
+      >
+        <TextShimmerV2 text={language.t("ui.sessionTurn.status.thinking")} />
+      </Show>
       <Show when={!props.showReasoningSummaries}>
         <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
       </Show>
@@ -137,6 +145,7 @@ function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSu
 
 function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
   const language = useLanguage()
+  const settings = useSettings()
   const maxFiles = 10
   const [state, setState] = createStore({
     showAll: false,
@@ -158,8 +167,8 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
           {props.diffs.length} {language.t("ui.sessionTurn.diffs.changed")}{" "}
           {language.t(props.diffs.length === 1 ? "ui.common.file.one" : "ui.common.file.other")}
         </span>
-        <span class="translate-y-px">
-          <DiffChanges changes={props.diffs} />
+        <span classList={{ "translate-y-px": settings.general.newLayoutDesigns() }}>
+          <TimelineDiffChanges changes={props.diffs} v2={settings.general.newLayoutDesigns()} />
         </span>
         <Show when={overflow() > 0}>
           <span data-slot="session-turn-diffs-toggle" onClick={() => setState("showAll", !showAll())}>
@@ -194,7 +203,21 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
                             <DiffChanges changes={diff} />
                           </span>
                           <span data-slot="session-turn-diff-chevron">
-                            <Icon name="chevron-down" size="small" />
+                            <Show
+                              when={settings.general.newLayoutDesigns()}
+                              fallback={<Icon name="chevron-down" size="small" />}
+                            >
+                              <svg
+                                data-slot="icon-svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path d="M5 6.5L8 9.5L11 6.5" stroke="currentColor" />
+                              </svg>
+                            </Show>
                           </span>
                         </div>
                       </div>
@@ -217,6 +240,34 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
         </Show>
       </div>
     </div>
+  )
+}
+
+function TimelineDiffChanges(props: {
+  changes: { additions: number; deletions: number } | { additions: number; deletions: number }[]
+  v2: boolean
+}) {
+  const additions = createMemo(() =>
+    Array.isArray(props.changes)
+      ? props.changes.reduce((acc, diff) => acc + (diff.additions ?? 0), 0)
+      : props.changes.additions,
+  )
+  const deletions = createMemo(() =>
+    Array.isArray(props.changes)
+      ? props.changes.reduce((acc, diff) => acc + (diff.deletions ?? 0), 0)
+      : props.changes.deletions,
+  )
+  const total = createMemo(() => (additions() ?? 0) + (deletions() ?? 0))
+
+  return (
+    <Show when={props.v2} fallback={<DiffChanges changes={props.changes} />}>
+      <Show when={total() > 0}>
+        <div data-component="diff-changes">
+          <span data-slot="diff-changes-additions">{`+${additions()}`}</span>
+          <span data-slot="diff-changes-deletions">{`-${deletions()}`}</span>
+        </div>
+      </Show>
+    </Show>
   )
 }
 
@@ -965,6 +1016,7 @@ export function MessageTimeline(props: {
                 defaultOpen={defaultOpen()}
                 toolOpen={toolOpen[part().id] ?? defaultOpen()}
                 onToolOpenChange={(open) => setToolOpen(part().id, open)}
+                actionVariant={settings.general.newLayoutDesigns() ? "v2" : "default"}
                 deferToolContent
                 virtualizeDiff={false}
                 onContentRendered={onSizeChange}
@@ -998,7 +1050,12 @@ export function MessageTimeline(props: {
           "pt-3": previousAssistantPart(),
         }}
       >
-        <div data-component="session-turn" class="min-w-0 w-full relative" style={{ height: "auto" }}>
+        <div
+          data-component="session-turn"
+          data-layout={settings.general.newLayoutDesigns() ? "v2" : undefined}
+          class="min-w-0 w-full relative"
+          style={{ height: "auto" }}
+        >
           {input.children}
         </div>
       </div>
@@ -1069,6 +1126,7 @@ export function MessageTimeline(props: {
                       message={message()}
                       parts={getMsgParts(userMessageRow().userMessageID)}
                       actions={props.actions}
+                      actionVariant={settings.general.newLayoutDesigns() ? "v2" : "default"}
                     />
                   </div>
                 </div>

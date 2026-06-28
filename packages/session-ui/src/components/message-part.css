@@ -152,9 +152,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 10px;
     width: 100%;
-    padding-right: 4px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease;
@@ -165,6 +164,11 @@
       display: inline-flex;
       width: fit-content;
     }
+  }
+
+  [data-slot="user-message-copy-wrapper"][data-action-variant="v2"] {
+    gap: 6px;
+    padding-right: 4px;
   }
 
   [data-slot="user-message-meta"] {
@@ -185,6 +189,9 @@
     justify-content: flex-end;
     overflow: hidden;
     gap: 0;
+  }
+
+  [data-slot="user-message-copy-wrapper"][data-action-variant="v2"] [data-slot="user-message-meta-wrap"] {
     margin-right: 4px;
   }
 
@@ -230,7 +237,8 @@
     transition: opacity 0.15s ease;
     will-change: opacity;
 
-    [data-component="tooltip-trigger"] {
+    [data-component="tooltip-trigger"],
+    [data-component="tooltip-v2-trigger"] {
       display: inline-flex;
       width: fit-content;
     }

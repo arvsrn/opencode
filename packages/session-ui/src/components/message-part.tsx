@@ -161,6 +161,7 @@ export interface MessageProps {
   message: MessageType
   parts: PartType[]
   actions?: UserActions
+  actionVariant?: "default" | "v2"
   showAssistantCopyPartID?: string | null
   showReasoningSummaries?: boolean
 }
@@ -184,6 +185,7 @@ export interface MessagePartProps {
   onContentRendered?: () => void
   showAssistantCopyPartID?: string | null
   turnDurationMs?: number
+  actionVariant?: "default" | "v2"
 }
 
 export type PartComponent = Component<MessagePartProps>
@@ -646,6 +648,7 @@ export function AssistantParts(props: {
   showReasoningSummaries?: boolean
   shellToolDefaultOpen?: boolean
   editToolDefaultOpen?: boolean
+  actionVariant?: "default" | "v2"
 }) {
   const data = useData()
   const emptyParts: PartType[] = []
@@ -726,6 +729,7 @@ export function AssistantParts(props: {
                         message={message()!}
                         showAssistantCopyPartID={props.showAssistantCopyPartID}
                         turnDurationMs={props.turnDurationMs}
+                        actionVariant={props.actionVariant}
                         defaultOpen={partDefaultOpen(item()!, props.shellToolDefaultOpen, props.editToolDefaultOpen)}
                       />
                     </Show>
@@ -853,7 +857,12 @@ export function Message(props: MessageProps) {
     <Switch>
       <Match when={props.message.role === "user" && props.message}>
         {(userMessage) => (
-          <UserMessageDisplay message={userMessage() as UserMessage} parts={props.parts} actions={props.actions} />
+          <UserMessageDisplay
+            message={userMessage() as UserMessage}
+            parts={props.parts}
+            actions={props.actions}
+            actionVariant={props.actionVariant}
+          />
         )}
       </Match>
       <Match when={props.message.role === "assistant" && props.message}>
@@ -863,6 +872,7 @@ export function Message(props: MessageProps) {
             parts={props.parts}
             showAssistantCopyPartID={props.showAssistantCopyPartID}
             showReasoningSummaries={props.showReasoningSummaries}
+            actionVariant={props.actionVariant}
           />
         )}
       </Match>
@@ -875,6 +885,7 @@ export function AssistantMessageDisplay(props: {
   parts: PartType[]
   showAssistantCopyPartID?: string | null
   showReasoningSummaries?: boolean
+  actionVariant?: "default" | "v2"
 }) {
   const emptyTools: ToolPart[] = []
   const part = createMemo(() => index(props.parts))
@@ -934,6 +945,7 @@ export function AssistantMessageDisplay(props: {
                       part={item()!}
                       message={props.message}
                       showAssistantCopyPartID={props.showAssistantCopyPartID}
+                      actionVariant={props.actionVariant}
                     />
                   </Show>
                 )
@@ -1054,7 +1066,12 @@ export function ContextToolGroup(props: { parts: ToolPart[]; busy?: boolean; onS
   )
 }
 
-export function UserMessageDisplay(props: { message: UserMessage; parts: PartType[]; actions?: UserActions }) {
+export function UserMessageDisplay(props: {
+  message: UserMessage
+  parts: PartType[]
+  actions?: UserActions
+  actionVariant?: "default" | "v2"
+}) {
   const data = useData()
   const dialog = useDialog()
   const i18n = useI18n()
@@ -1172,7 +1189,7 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
               <HighlightedText text={text()} references={inlineFiles()} agents={agents()} />
             </div>
           </div>
-          <div data-slot="user-message-copy-wrapper">
+          <div data-slot="user-message-copy-wrapper" data-action-variant={props.actionVariant === "v2" ? "v2" : undefined}>
             <Show when={metaHead() || metaTail()}>
               <span data-slot="user-message-meta-wrap">
                 <Show when={metaHead()}>
@@ -1193,61 +1210,102 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
               </span>
             </Show>
             <Show when={props.actions?.revert}>
-              <TooltipV2 value={i18n.t("ui.message.revertMessage")} placement="top">
+              <Show
+                when={props.actionVariant === "v2"}
+                fallback={
+                  <Tooltip value={i18n.t("ui.message.revertMessage")} placement="top" gutter={4}>
+                    <IconButton
+                      icon="reset"
+                      size="normal"
+                      variant="ghost"
+                      disabled={!!busy()}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        revert()
+                      }}
+                      aria-label={i18n.t("ui.message.revertMessage")}
+                    />
+                  </Tooltip>
+                }
+              >
+                <TooltipV2 value={i18n.t("ui.message.revertMessage")} placement="top">
+                  <IconButtonV2
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path
+                          d="M5.83333 4.16406L2.5 7.4974L5.83333 10.8307M3.33333 7.4974H17.9167V15.4141H10"
+                          stroke="currentColor"
+                          stroke-linecap="square"
+                        />
+                      </svg>
+                    }
+                    size="normal"
+                    variant="ghost-muted"
+                  disabled={!!busy()}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      revert()
+                    }}
+                    aria-label={i18n.t("ui.message.revertMessage")}
+                  />
+                </TooltipV2>
+              </Show>
+            </Show>
+            <Show
+              when={props.actionVariant === "v2"}
+              fallback={
+                <Tooltip
+                  value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
+                  placement="top"
+                  gutter={4}
+                >
+                  <IconButton
+                    icon={copied() ? "check" : "copy"}
+                    size="normal"
+                    variant="ghost"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      void handleCopy()
+                    }}
+                    aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
+                  />
+                </Tooltip>
+              }
+            >
+              <TooltipV2
+                value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
+                placement="top"
+              >
                 <IconButtonV2
                   icon={
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path
-                        d="M5.83333 4.16406L2.5 7.4974L5.83333 10.8307M3.33333 7.4974H17.9167V15.4141H10"
-                        stroke="currentColor"
-                        stroke-linecap="square"
-                      />
-                    </svg>
+                    copied() ? (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M3.53613 8.17857L6.39328 11.75L12.4647 4.25" stroke="currentColor" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path
+                          d="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    )
                   }
                   size="normal"
                   variant="ghost-muted"
-                  class="-mt-0.5"
-                  disabled={!!busy()}
-                  onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
                   onClick={(event) => {
                     event.stopPropagation()
-                    revert()
+                    void handleCopy()
                   }}
-                  aria-label={i18n.t("ui.message.revertMessage")}
+                  aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
                 />
               </TooltipV2>
             </Show>
-            <TooltipV2
-              value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
-              placement="top"
-            >
-              <IconButtonV2
-                icon={
-                  copied() ? (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M3.53613 8.17857L6.39328 11.75L12.4647 4.25" stroke="currentColor" />
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path
-                        d="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                      />
-                    </svg>
-                  )
-                }
-                size="normal"
-                variant="ghost-muted"
-                class="-mt-0.5"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  void handleCopy()
-                }}
-                aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
-              />
-            </TooltipV2>
           </div>
         </>
       </Show>
@@ -1311,6 +1369,7 @@ export function Part(props: MessagePartProps) {
         onContentRendered={props.onContentRendered}
         showAssistantCopyPartID={props.showAssistantCopyPartID}
         turnDurationMs={props.turnDurationMs}
+        actionVariant={props.actionVariant}
       />
     </Show>
   )
@@ -1590,21 +1649,58 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
           </Show>
         </div>
         <Show when={showCopy()}>
-          <div data-slot="text-part-copy-wrapper" data-interrupted={interrupted() ? "" : undefined}>
-            <Tooltip
-              value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
-              placement="top"
-              gutter={4}
+          <div
+            data-slot="text-part-copy-wrapper"
+            data-action-variant={props.actionVariant === "v2" ? "v2" : undefined}
+            data-interrupted={interrupted() ? "" : undefined}
+          >
+            <Show
+              when={props.actionVariant === "v2"}
+              fallback={
+                <Tooltip
+                  value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+                  placement="top"
+                  gutter={4}
+                >
+                  <IconButton
+                    icon={copied() ? "check" : "copy"}
+                    size="normal"
+                    variant="ghost"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleCopy}
+                    aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+                  />
+                </Tooltip>
+              }
             >
-              <IconButton
-                icon={copied() ? "check" : "copy"}
-                size="normal"
-                variant="ghost"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={handleCopy}
-                aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
-              />
-            </Tooltip>
+              <TooltipV2
+                value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+                placement="top"
+              >
+                <IconButtonV2
+                  icon={
+                    copied() ? (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M3.53613 8.17857L6.39328 11.75L12.4647 4.25" stroke="currentColor" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path
+                          d="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    )
+                  }
+                  size="normal"
+                  variant="ghost-muted"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleCopy}
+                  aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyResponse")}
+                />
+              </TooltipV2>
+            </Show>
             <Show when={meta()}>
               <span data-slot="text-part-meta" class="text-12-regular text-text-weak cursor-default">
                 {meta()}
