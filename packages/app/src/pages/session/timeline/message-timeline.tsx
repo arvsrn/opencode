@@ -27,9 +27,9 @@ import {
   partDefaultOpen,
   type UserActions,
 } from "@opencode-ai/session-ui/message-part"
-import { DiffChanges } from "@opencode-ai/ui/diff-changes"
+import { DiffChanges } from "@opencode-ai/ui/v2/diff-changes-v2"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
-import { Icon } from "@opencode-ai/ui/icon"
+import { Icon } from "@opencode-ai/ui/v2/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -39,7 +39,7 @@ import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { StickyAccordionHeader } from "@opencode-ai/ui/sticky-accordion-header"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { TextReveal } from "@opencode-ai/ui/text-reveal"
-import { TextShimmer } from "@opencode-ai/ui/text-shimmer"
+import { TextShimmerV2 } from "@opencode-ai/ui/v2/text-shimmer-v2"
 import type {
   AssistantMessage,
   Message as MessageType,
@@ -127,7 +127,7 @@ function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSu
 
   return (
     <div data-slot="session-turn-thinking">
-      <TextShimmer text={language.t("ui.sessionTurn.status.thinking")} />
+      <TextShimmerV2 text={language.t("ui.sessionTurn.status.thinking")} />
       <Show when={!props.showReasoningSummaries}>
         <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
       </Show>
@@ -158,7 +158,9 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
           {props.diffs.length} {language.t("ui.sessionTurn.diffs.changed")}{" "}
           {language.t(props.diffs.length === 1 ? "ui.common.file.one" : "ui.common.file.other")}
         </span>
-        <DiffChanges changes={props.diffs} />
+        <span class="translate-y-px">
+          <DiffChanges changes={props.diffs} />
+        </span>
         <Show when={overflow() > 0}>
           <span data-slot="session-turn-diffs-toggle" onClick={() => setState("showAll", !showAll())}>
             {showAll() ? language.t("ui.sessionTurn.diffs.showLess") : language.t("ui.sessionTurn.diffs.showAll")}
@@ -1250,7 +1252,13 @@ export function MessageTimeline(props: {
                     "0 51px 60px 0 rgba(0,0,0,0.10), 0 15px 18px 0 rgba(0,0,0,0.12), 0 6.386px 7.513px 0 rgba(0,0,0,0.12), 0 2.31px 2.717px 0 rgba(0,0,0,0.20)",
                 }}
               >
-                <Icon name="arrow-down-to-line" size="small" />
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M12.3333 8.66665L8 13L3.66667 8.66665M8 12.6667V2.83332"
+                    stroke="currentColor"
+                    stroke-linecap="square"
+                  />
+                </svg>
               </div>
             </button>
           }

@@ -152,14 +152,16 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 6px;
     width: 100%;
+    padding-right: 4px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease;
     will-change: opacity;
 
-    [data-component="tooltip-trigger"] {
+    [data-component="tooltip-trigger"],
+    [data-component="tooltip-v2-trigger"] {
       display: inline-flex;
       width: fit-content;
     }
@@ -183,6 +185,7 @@
     justify-content: flex-end;
     overflow: hidden;
     gap: 0;
+    margin-right: 4px;
   }
 
   [data-slot="user-message-meta-tail"] {

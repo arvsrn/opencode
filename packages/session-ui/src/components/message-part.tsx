@@ -49,6 +49,8 @@ import { getDirectory as _getDirectory, getFilename } from "@opencode-ai/core/ut
 import { checksum } from "@opencode-ai/core/util/encode"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { TextShimmer } from "@opencode-ai/ui/text-shimmer"
 import { AnimatedCountList } from "./tool-count-summary"
@@ -1191,11 +1193,20 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
               </span>
             </Show>
             <Show when={props.actions?.revert}>
-              <Tooltip value={i18n.t("ui.message.revertMessage")} placement="top" gutter={4}>
-                <IconButton
-                  icon="reset"
+              <TooltipV2 value={i18n.t("ui.message.revertMessage")} placement="top">
+                <IconButtonV2
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M5.83333 4.16406L2.5 7.4974L5.83333 10.8307M3.33333 7.4974H17.9167V15.4141H10"
+                        stroke="currentColor"
+                        stroke-linecap="square"
+                      />
+                    </svg>
+                  }
                   size="normal"
-                  variant="ghost"
+                  variant="ghost-muted"
+                  class="-mt-0.5"
                   disabled={!!busy()}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(event) => {
@@ -1204,17 +1215,31 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
                   }}
                   aria-label={i18n.t("ui.message.revertMessage")}
                 />
-              </Tooltip>
+              </TooltipV2>
             </Show>
-            <Tooltip
+            <TooltipV2
               value={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
               placement="top"
-              gutter={4}
             >
-              <IconButton
-                icon={copied() ? "check" : "copy"}
+              <IconButtonV2
+                icon={
+                  copied() ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M3.53613 8.17857L6.39328 11.75L12.4647 4.25" stroke="currentColor" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  )
+                }
                 size="normal"
-                variant="ghost"
+                variant="ghost-muted"
+                class="-mt-0.5"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(event) => {
                   event.stopPropagation()
@@ -1222,7 +1247,7 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
                 }}
                 aria-label={copied() ? i18n.t("ui.message.copied") : i18n.t("ui.message.copyMessage")}
               />
-            </Tooltip>
+            </TooltipV2>
           </div>
         </>
       </Show>

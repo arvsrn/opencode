@@ -52,7 +52,7 @@
     min-width: 0;
     color: var(--text-weak);
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-base);
+    font-size: 13px;
     font-weight: var(--font-weight-medium);
     line-height: 20px;
     min-height: 20px;
@@ -91,6 +91,7 @@
   [data-slot="session-turn-diffs"] {
     width: 100%;
     min-width: 0;
+    margin-bottom: 24px;
   }
 
   [data-slot="session-turn-diffs-header"] {
