@@ -262,7 +262,7 @@ function TimelineDiffChanges(props: {
   return (
     <Show when={props.v2} fallback={<DiffChanges changes={props.changes} />}>
       <Show when={total() > 0}>
-        <div data-component="diff-changes">
+        <div data-component="diff-changes-v2">
           <span data-slot="diff-changes-additions">{`+${additions()}`}</span>
           <span data-slot="diff-changes-deletions">{`-${deletions()}`}</span>
         </div>
