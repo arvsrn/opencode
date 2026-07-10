@@ -109,10 +109,6 @@ export default function NewSessionPage() {
     })
   })
 
-  createEffect(() => {
-    if (!prompt.ready()) return
-    requestAnimationFrame(() => inputRef?.focus())
-  })
   const ready = Promise.resolve()
   const [promptReady] = createResource(
     () => prompt.ready.promise ?? ready,

@@ -43,6 +43,7 @@ const prompt = {
     replaceComments: () => undefined,
     items: () => [],
   },
+  view: { scrollTop: 0 },
   capture: () => prompt,
 }
 

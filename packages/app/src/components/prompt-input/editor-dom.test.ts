@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test"
-import { createTextFragment, getCursorPosition, getNodeLength, getTextLength, setCursorPosition } from "./editor-dom"
+import {
+  createTextFragment,
+  getCursorPosition,
+  getEditorSelection,
+  getNodeLength,
+  getTextLength,
+  setCursorPosition,
+  setEditorSelection,
+} from "./editor-dom"
 
 describe("prompt-input editor dom", () => {
   test("createTextFragment preserves newlines with consecutive br nodes", () => {
@@ -95,5 +103,86 @@ describe("prompt-input editor dom", () => {
     expect(getCursorPosition(container)).toBe(3)
 
     container.remove()
+  })
+
+  test("captures and restores collapsed and forward selections", () => {
+    const container = document.createElement("div")
+    container.textContent = "abcdef"
+    document.body.appendChild(container)
+
+    setEditorSelection(container, { anchor: 3, focus: 3 })
+    expect(getEditorSelection(container)).toEqual({ anchor: 3, focus: 3 })
+
+    setEditorSelection(container, { anchor: 1, focus: 5 })
+    expect(getEditorSelection(container)).toEqual({ anchor: 1, focus: 5 })
+
+    container.remove()
+  })
+
+  test("preserves backward selection direction", () => {
+    const container = document.createElement("div")
+    container.textContent = "abcdef"
+    document.body.appendChild(container)
+
+    setEditorSelection(container, { anchor: 5, focus: 1 })
+
+    expect(getEditorSelection(container)).toEqual({ anchor: 5, focus: 1 })
+    container.remove()
+  })
+
+  test("restores selection across breaks and blank lines", () => {
+    const container = document.createElement("div")
+    container.appendChild(document.createTextNode("ab"))
+    container.appendChild(document.createElement("br"))
+    container.appendChild(document.createElement("br"))
+    container.appendChild(document.createTextNode("cd"))
+    document.body.appendChild(container)
+
+    setEditorSelection(container, { anchor: 1, focus: 5 })
+
+    expect(getEditorSelection(container)).toEqual({ anchor: 1, focus: 5 })
+    container.remove()
+  })
+
+  test("restores selection at pill boundaries", () => {
+    const container = document.createElement("div")
+    const pill = document.createElement("span")
+    pill.dataset.type = "file"
+    pill.textContent = "@file"
+    container.appendChild(document.createTextNode("ab"))
+    container.appendChild(pill)
+    container.appendChild(document.createTextNode("cd"))
+    document.body.appendChild(container)
+
+    setEditorSelection(container, { anchor: 2, focus: 7 })
+
+    expect(getEditorSelection(container)).toEqual({ anchor: 2, focus: 7 })
+    container.remove()
+  })
+
+  test("clamps selection offsets to the editor bounds", () => {
+    const container = document.createElement("div")
+    container.textContent = "abc"
+    document.body.appendChild(container)
+
+    setEditorSelection(container, { anchor: -10, focus: 20 })
+
+    expect(getEditorSelection(container)).toEqual({ anchor: 0, focus: 3 })
+    container.remove()
+  })
+
+  test("does not capture a selection with an endpoint outside the editor", () => {
+    const container = document.createElement("div")
+    const outside = document.createElement("div")
+    container.textContent = "inside"
+    outside.textContent = "outside"
+    document.body.append(container, outside)
+    const selection = window.getSelection()!
+
+    selection.setBaseAndExtent(container.firstChild!, 1, outside.firstChild!, 2)
+
+    expect(getEditorSelection(container)).toBeUndefined()
+    container.remove()
+    outside.remove()
   })
 })

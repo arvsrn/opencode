@@ -178,6 +178,14 @@ type PromptStore = {
   }
 }
 
+type PromptView = {
+  selection?: {
+    anchor: number
+    focus: number
+  }
+  scrollTop: number
+}
+
 type Scope = { draftID: string } | { dir: string; id?: string }
 
 export function selectPromptTab(tabs: Tab[], scope: Scope, server: ServerConnection.Key) {
@@ -210,8 +218,9 @@ export function createPromptSession(serverScope: ServerScope, scope: Scope) {
     promptTarget(serverScope, scope),
     createStore<PromptStore>(promptStore()),
   )
+  const view: PromptView = { scrollTop: 0 }
 
-  return { ready, ...createPromptStateValue(store, setStore) }
+  return { ready, ...createPromptStateValue(store, setStore, view) }
 }
 
 export function createPromptReady(session: Accessor<PromptSession>) {
@@ -230,7 +239,9 @@ function promptStore(): PromptStore {
   }
 }
 
-function createPromptStateValue(store: PromptStore, setStore: SetStoreFunction<PromptStore>) {
+// The view is deliberately non-reactive: selection and scroll are only read and
+// written imperatively around focus, blur, and mount, never by effects.
+function createPromptStateValue(store: PromptStore, setStore: SetStoreFunction<PromptStore>, view: PromptView) {
   const actions = createPromptActions(setStore)
 
   const value = {
@@ -268,6 +279,7 @@ function createPromptStateValue(store: PromptStore, setStore: SetStoreFunction<P
         ])
       },
     },
+    view,
     set: actions.set,
     reset: actions.reset,
     capture: () => value,
@@ -280,7 +292,7 @@ export function createPromptState() {
   const ready = Object.assign(() => true, { promise: Promise.resolve(true) })
   return {
     ready,
-    ...createPromptStateValue(store, setStore),
+    ...createPromptStateValue(store, setStore, { scrollTop: 0 }),
   }
 }
 
@@ -371,6 +383,9 @@ export const { use: usePrompt, provider: PromptProvider } = createSimpleContext(
         updateComment: (path: string, commentID: string, next: Partial<FileContextItem> & { comment?: string }) =>
           session().context.updateComment(path, commentID, next),
         replaceComments: (items: FileContextItem[]) => session().context.replaceComments(items),
+      },
+      get view() {
+        return session().view
       },
       set: (prompt: Prompt, cursorPosition?: number, scope?: Scope) => pick(scope).set(prompt, cursorPosition),
       reset: (scope?: Scope) => pick(scope).reset(),

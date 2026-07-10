@@ -234,6 +234,8 @@ export function TabNavItem(props: {
             if (event.button !== 0) return
             if (editing()) return
             if (props.suppressNavigation?.()) return
+            // Keep the browser from focusing the link so activation can focus the prompt editor.
+            event.preventDefault()
             props.onNavigate()
           }}
           onClick={(event) => {
@@ -386,6 +388,8 @@ export function DraftTabItem(props: {
           // Navigate on mousedown to shave the press-release delay off tab switches.
           if (event.button !== 0) return
           if (props.suppressNavigation?.()) return
+          // Keep the browser from focusing the link so activation can focus the prompt editor.
+          event.preventDefault()
           props.onNavigate()
         }}
         onClick={(event) => {

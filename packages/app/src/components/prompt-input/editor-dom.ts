@@ -42,6 +42,81 @@ export function getTextLength(node: Node): number {
   return length
 }
 
+export type EditorSelection = {
+  anchor: number
+  focus: number
+}
+
+export function getEditorSelection(parent: HTMLElement): EditorSelection | undefined {
+  const selection = window.getSelection()
+  if (!selection?.anchorNode || !selection.focusNode) return
+  if (!containsSelectionNode(parent, selection.anchorNode) || !containsSelectionNode(parent, selection.focusNode)) return
+  return {
+    anchor: getSelectionOffset(parent, selection.anchorNode, selection.anchorOffset),
+    focus: getSelectionOffset(parent, selection.focusNode, selection.focusOffset),
+  }
+}
+
+export function setEditorSelection(parent: HTMLElement, value: EditorSelection) {
+  const selection = window.getSelection()
+  if (!selection) return
+  const length = getTextLength(parent)
+  const anchor = getSelectionPoint(parent, Math.max(0, Math.min(value.anchor, length)))
+  const focus = getSelectionPoint(parent, Math.max(0, Math.min(value.focus, length)))
+  // setBaseAndExtent keeps backward selections; a Range cannot represent direction.
+  selection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset)
+}
+
+function containsSelectionNode(parent: HTMLElement, node: Node) {
+  return node === parent || parent.contains(node)
+}
+
+function getSelectionOffset(parent: HTMLElement, node: Node, offset: number) {
+  const range = document.createRange()
+  range.selectNodeContents(parent)
+  range.setEnd(node, offset)
+  return getTextLength(range.cloneContents())
+}
+
+function getSelectionPoint(parent: Node, offset: number): { node: Node; offset: number } {
+  let remaining = offset
+  const children = Array.from(parent.childNodes)
+
+  for (const [index, node] of children.entries()) {
+    const length = getTextLength(node)
+    if (remaining > length) {
+      remaining -= length
+      continue
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) return { node, offset: getTextOffset(node.textContent ?? "", remaining) }
+
+    const element = node as HTMLElement
+    const isPill = element.dataset.type === "file" || element.dataset.type === "agent"
+    const isBreak = element.tagName === "BR"
+    if (isPill || isBreak) {
+      if (remaining === 0) return { node: parent, offset: index }
+      const next = children[index + 1]
+      if (isBreak && next?.nodeType === Node.TEXT_NODE) return { node: next, offset: 0 }
+      return { node: parent, offset: index + 1 }
+    }
+
+    return getSelectionPoint(node, remaining)
+  }
+
+  return { node: parent, offset: children.length }
+}
+
+function getTextOffset(text: string, offset: number) {
+  if (offset === 0) return 0
+  let length = 0
+  for (let index = 0; index < text.length; index++) {
+    if (text[index] !== "\u200B") length += 1
+    if (length === offset) return index + 1
+  }
+  return text.length
+}
+
 export function getCursorPosition(parent: HTMLElement): number {
   const selection = window.getSelection()
   if (!selection || selection.rangeCount === 0) return 0

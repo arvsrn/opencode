@@ -9,6 +9,7 @@ import {
   createMemo,
   createSignal,
   createResource,
+  onMount,
   Switch,
   Match,
   type JSX,
@@ -53,7 +54,14 @@ import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { createSessionTabs } from "@/pages/session/helpers"
-import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
+import {
+  createTextFragment,
+  getCursorPosition,
+  getEditorSelection,
+  setCursorPosition,
+  setEditorSelection,
+  setRangeEdge,
+} from "./prompt-input/editor-dom"
 import { createPromptAttachments } from "./prompt-input/attachments"
 import { ACCEPTED_FILE_TYPES, pickAttachmentFiles } from "./prompt-input/files"
 import {
@@ -209,6 +217,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const sync = useSync()
   const files = useFile()
   const prompt = props.state ?? usePrompt()
+  // V2 remounts the composer per tab. Pinning its view prevents cleanup from
+  // writing the outgoing DOM state into the newly active prompt session.
+  const promptView = prompt.capture().view
   const layout = useLayout()
   const comments = useComments()
   const dialog = useDialog()
@@ -221,8 +232,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let fileInputRef: HTMLInputElement | undefined
   let scrollRef!: HTMLDivElement
   let slashPopoverRef!: HTMLDivElement
-  let restoreEndOnFocus = true
-  let savedCursor: number | null = null
+  let restoreViewOnFocus = true
+  let savedSelection: ReturnType<typeof getEditorSelection>
 
   const mirror = { input: false }
   const inset = 56
@@ -587,35 +598,65 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   }
 
-  const currentCursor = () => {
-    const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0 || !editorRef.contains(selection.anchorNode)) return null
-    return getCursorPosition(editorRef)
+  const captureView = () => {
+    // View state is tab-scoped; the legacy layout reuses one composer across sessions.
+    if (!props.controls.newLayoutDesigns) return
+    const selection = getEditorSelection(editorRef)
+    if (selection) promptView.selection = selection
+    if (scrollRef) promptView.scrollTop = scrollRef.scrollTop
+  }
+
+  const captureScroll = () => {
+    if (!props.controls.newLayoutDesigns) return
+    promptView.scrollTop = scrollRef.scrollTop
+  }
+
+  const storedSelection = () => (props.controls.newLayoutDesigns ? promptView.selection : undefined)
+
+  const applyStoredView = () => {
+    const selection = storedSelection()
+    if (!selection) {
+      setCursorPosition(editorRef, prompt.cursor() ?? promptLength(prompt.current()))
+      queueScroll()
+      return
+    }
+    setEditorSelection(editorRef, selection)
+    scrollRef.scrollTop = Math.min(promptView.scrollTop, Math.max(0, scrollRef.scrollHeight - scrollRef.clientHeight))
+  }
+
+  const restoreView = () => {
+    restoreViewOnFocus = false
+    editorRef.focus({ preventScroll: true })
+    applyStoredView()
   }
 
   const restoreFocus = () => {
     requestAnimationFrame(() => {
-      const cursor = savedCursor ?? prompt.cursor() ?? promptLength(prompt.current())
-      editorRef.focus()
-      setCursorPosition(editorRef, cursor)
+      const cursor = prompt.cursor() ?? promptLength(prompt.current())
+      const selection = savedSelection ?? storedSelection()
+      editorRef.focus({ preventScroll: true })
+      setEditorSelection(editorRef, selection ?? { anchor: cursor, focus: cursor })
+      if (selection && props.controls.newLayoutDesigns) {
+        scrollRef.scrollTop = Math.min(promptView.scrollTop, Math.max(0, scrollRef.scrollHeight - scrollRef.clientHeight))
+        return
+      }
       queueScroll()
     })
   }
 
   const handleFocus = () => {
-    if (!restoreEndOnFocus) return
-    restoreEndOnFocus = false
+    if (!restoreViewOnFocus) return
+    restoreViewOnFocus = false
     requestAnimationFrame(() => {
       if (document.activeElement !== editorRef) return
-      setCursorPosition(editorRef, prompt.cursor() ?? promptLength(prompt.current()))
-      queueScroll()
+      applyStoredView()
     })
   }
 
   const renderEditorWithCursor = (parts: Prompt) => {
-    const cursor = currentCursor()
+    const selection = getEditorSelection(editorRef)
     renderEditor(parts)
-    if (cursor !== null) setCursorPosition(editorRef, cursor)
+    if (selection) setEditorSelection(editorRef, selection)
   }
 
   createEffect(() => {
@@ -632,7 +673,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const isImeComposing = (event: KeyboardEvent) => event.isComposing || composing() || event.keyCode === 229
 
   const handleBlur = () => {
-    savedCursor = currentCursor()
+    savedSelection = getEditorSelection(editorRef)
+    captureView()
     closePopover()
     setComposing(false)
   }
@@ -1564,9 +1606,39 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const newSession = () => props.variant === "new-session"
   const bindEditorRef = (el: HTMLDivElement) => {
     editorRef = el
-    restoreEndOnFocus = true
+    restoreViewOnFocus = true
     props.ref?.(el)
   }
+
+  onMount(() => {
+    if (!props.controls.newLayoutDesigns) return
+    let disposed = false
+    let selectionFrame: number | undefined
+    const selectionChanged = () => {
+      if (selectionFrame !== undefined) return
+      selectionFrame = requestAnimationFrame(() => {
+        selectionFrame = undefined
+        captureView()
+      })
+    }
+    document.addEventListener("selectionchange", selectionChanged)
+    onCleanup(() => {
+      disposed = true
+      if (selectionFrame !== undefined) cancelAnimationFrame(selectionFrame)
+      captureView()
+      document.removeEventListener("selectionchange", selectionChanged)
+    })
+
+    const focus = () =>
+      queueMicrotask(() => {
+        if (disposed) return
+        const active = document.activeElement
+        if (active && active !== document.body && active !== editorRef && !active.matches("[data-titlebar-tab-link]")) return
+        restoreView()
+      })
+    if (prompt.ready()) focus()
+    else void prompt.ready.promise?.then(focus)
+  })
   const showAgentControl = createMemo(() => props.controls.agents.visible && props.controls.agents.options.length > 0)
   const agentControlState = createMemo<ComposerAgentControlState>(() => ({
     title: language.t("command.agent.cycle"),
@@ -1654,7 +1726,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   editorRef?.focus()
                 }}
               >
-                <div class="relative max-h-[180px] overflow-y-auto no-scrollbar" ref={(el) => (scrollRef = el)}>
+                <div
+                  class="relative max-h-[180px] overflow-y-auto no-scrollbar"
+                  ref={(el) => (scrollRef = el)}
+                  onScroll={captureScroll}
+                >
                   <div
                     data-component="prompt-input"
                     ref={bindEditorRef}
